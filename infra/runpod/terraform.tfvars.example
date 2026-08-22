@@ -1,4 +1,5 @@
-gpu_type_id = "NVIDIA GeForce RTX 3090"
-volume_in_gb = 50
-interruptible = false
-
+gpu_type_id         = "NVIDIA GeForce RTX 3090"
+cloud_type          = "COMMUNITY"
+container_disk_in_gb = 40
+volume_in_gb        = 50
+interruptible       = false

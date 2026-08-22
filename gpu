@@ -187,7 +187,16 @@ up() {
   write_ssh_alias "$host" "$port"
   alias=$(ssh_alias)
   ssh "$alias" \
-    "command -v nvidia-smi >/dev/null && nvidia-smi --query-gpu=name,driver_version --format=csv,noheader"
+    'set -eu
+    command -v nvidia-smi nvcc ncu python3 >/dev/null
+    nvidia-smi --query-gpu=name,driver_version --format=csv,noheader
+    nvcc --version | tail -n 1
+    python3 -c "import torch, triton; assert torch.cuda.is_available(); print(f\"PyTorch {torch.__version__}; Triton {triton.__version__}\")"
+    if command -v nsys >/dev/null 2>&1; then
+      nsys --version | head -n 1
+    else
+      echo "gpu: warning: Nsight Systems (nsys) is missing; deep profiling needs the custom image" >&2
+    fi'
 
   # remote_path is intentionally expanded locally and quoted for the remote shell.
   # shellcheck disable=SC2029

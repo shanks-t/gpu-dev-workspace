@@ -8,7 +8,7 @@ GPU_PROVIDER=runpod ./gpu zed
 GPU_PROVIDER=runpod ./gpu down
 ```
 
-RunPod is the default. GCP uses an `n1-standard-4` plus one T4 because G2/L4 machines cannot boot Deep Learning VM images; the T4 path gives us a prebuilt CUDA 12.8 host without maintaining an image yet.
+RunPod defaults to a non-interruptible Community RTX 3090 with CUDA 13.0 and PyTorch 2.9.1. This is the cheapest current target that supports the architecture-neutral single-GPU exercises. GCP defaults to a Spot `n1-standard-4` plus one T4 with a managed CUDA 12.9/PyTorch 2.9 image because G2/L4 machines cannot boot Deep Learning VM images.
 
 See [GPU_TYPES.md](GPU_TYPES.md) for the current target GPUs, live price snapshots, selection guidance, and source links.
 
@@ -58,6 +58,8 @@ make lint
 
 The first `up` creates the Pod. Later calls resume it. `down` stops compute but keeps the `/workspace` Pod volume, which continues to incur storage charges. `destroy` permanently deletes resources and requires typing the provider name.
 
+The default storage layout uses a 40 GB container disk for the image and OS plus a 50 GB persistent volume at `/workspace`. The container disk is discarded on stop. Source, virtual environments, model caches, Triton caches, profiler output, checkpoints, and small datasets belong under `/workspace`; the Terraform environment redirects common framework caches there automatically. At current rates, retaining the stopped 50 GB Pod volume costs about $10/month.
+
 RunPod Community hosts must support a public IP for Zed's full SSH connection. If a selected host has no public IP, choose another GPU or Secure Cloud machine.
 
 The configuration pins RunPod's Terraform provider to 1.0.8. Version 1.0.9 currently publishes an invalid schema and fails before Terraform can validate any configuration; retest before upgrading.
@@ -86,11 +88,18 @@ The configuration pins RunPod's Terraform provider to 1.0.8. Version 1.0.9 curre
    GPU_PROVIDER=gcp ./gpu down
    ```
 
-The firewall accepts SSH only from the configured `/32`. Update it when your public IP changes. GCP `down` stops compute while retaining the boot disk; disk charges continue.
+The firewall accepts SSH only from the configured `/32`. Update it when your public IP changes. GCP uses a 100 GB standard persistent boot disk, so the whole workspace survives Spot preemption and `down`; disk charges continue at about $4/month at current U.S. standard-disk rates.
+
+## Persistence policy
+
+- Git is the source-of-truth backup for code. Provider disks are working storage, not backups.
+- RunPod `down` retains `/workspace`, but `destroy` deletes the Pod volume. Keep only reproducible caches and replaceable public datasets there until provider-independent storage is added.
+- GCP `down` retains its boot disk. Snapshots are deliberately not enabled by default because they add storage cost; a later profile can add incremental snapshots for valuable benchmark checkpoints.
+- Keep profiler reports and compact processed datasets. Re-download large public training corpora instead of paying to retain duplicates on every provider.
 
 ## Working remotely
 
-`gpu up` waits for full SSH, creates the `gpu-runpod` or `gpu-gcp` SSH alias, verifies `nvidia-smi`, and seeds this committed repo into `/workspace/gpu-dev-workspace` once. It creates a remote Git repository without copying local credentials or Terraform state. Add your Git remote there if you want to push; otherwise stop rather than destroy the provider so the workspace persists.
+`gpu up` waits for full SSH, creates the `gpu-runpod` or `gpu-gcp` SSH alias, and checks `nvidia-smi`, `nvcc`, Nsight Compute, PyTorch, Triton, and CUDA availability before seeding this committed repo into `/workspace/gpu-dev-workspace`. Nsight Systems is reported separately because it may require the future custom image. The seed creates a remote Git repository without copying local credentials or Terraform state. Add your Git remote there if you want to push; otherwise stop rather than destroy the provider so the workspace persists.
 
 The CLI keeps generated aliases in `~/.ssh/config.d/gpu-workspace-*`. On first use it prepends one `Include` line to `~/.ssh/config` and saves the original as `~/.ssh/config.gpu-workspace.bak`. Existing aliases remain untouched. RunPod connection addresses can change after a stop, so `gpu up`, `gpu ssh`, and `gpu zed` refresh the alias before connecting.
 
@@ -115,6 +124,6 @@ Useful commands:
 ## Deliberately deferred
 
 - Vast.ai: add it after RunPod and GCP complete the CUDA smoke test.
-- Custom Docker image: add it when package drift or startup time is measured as a problem.
+- Custom Docker image: next infrastructure layer if first-launch validation confirms Nsight Systems or other book dependencies are missing.
 - GPU profile abstraction: plain provider variables already select hardware.
 - Shared Terraform modules: provider lifecycle and storage semantics are different enough that duplication is safer and smaller.

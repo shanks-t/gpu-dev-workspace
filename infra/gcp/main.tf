@@ -53,9 +53,9 @@ variable "desired_status" {
 }
 
 variable "spot" {
-  description = "Use Spot capacity; it can be preempted."
+  description = "Use cheaper Spot capacity; the persistent boot disk survives preemption."
   type        = bool
-  default     = false
+  default     = true
 }
 
 resource "google_compute_network" "lab" {
@@ -84,9 +84,9 @@ resource "google_compute_instance" "lab" {
 
   boot_disk {
     initialize_params {
-      image = "deeplearning-platform-release/common-cu128-ubuntu-2204-nvidia-570"
+      image = "deeplearning-platform-release/pytorch-2-9-cu129-ubuntu-2404-nvidia-580-v20260819"
       size  = 100
-      type  = "pd-balanced"
+      type  = "pd-standard"
     }
   }
 
@@ -129,4 +129,3 @@ output "ssh_user" {
 output "status" {
   value = google_compute_instance.lab.current_status
 }
-
