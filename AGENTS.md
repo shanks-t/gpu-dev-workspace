@@ -19,15 +19,12 @@ security add-generic-password \
   -w
 ```
 
-Retrieve it only into the environment of the command that needs it:
+The CLI automatically retrieves this item for RunPod commands and exports it only inside its own process. It is inherited by Terraform and API requests but does not modify the parent terminal environment:
 
 ```sh
-RUNPOD_API_KEY="$(
-  security find-generic-password \
-    -a "$USER" \
-    -s "runpod-gpu-workspace" \
-    -w
-)" ./gpu up
+./gpu up
+./gpu status
+./gpu zed
 ```
 
-Use the same pattern for `./gpu status`, `./gpu down`, and `./gpu cleanup`. Revoke and replace the key immediately if it is exposed.
+An existing `RUNPOD_API_KEY` environment variable takes precedence, which supports CI and temporary credentials. Zed uses the API key only to resolve the current Pod endpoint; SSH authentication uses the configured private key. Revoke and replace either credential immediately if it is exposed.

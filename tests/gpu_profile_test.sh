@@ -34,14 +34,26 @@ chmod +x "$fake_bin/terraform" "$fake_bin/curl" "$fake_bin/ssh"
 
 printf '%s\n' test-private-key >"$fake_home/.ssh/gpu_dev_ed25519"
 
-HOME=$fake_home \
-  PATH=$fake_bin:$PATH \
-  GPU_TEST_TF_LOG=$tf_log \
-  GPU_TEST_TF_STATE=$tf_state \
-  RUNPOD_API_KEY=test-api-key \
-  RUNPOD_SSH_KEY=$fake_home/.ssh/gpu_dev_ed25519 \
-  "$root/gpu" up book-persistent >/dev/null
+if ! output=$(
+  HOME=$fake_home \
+    PATH=$fake_bin:$PATH \
+    GPU_TEST_TF_LOG=$tf_log \
+    GPU_TEST_TF_STATE=$tf_state \
+    RUNPOD_API_KEY=test-api-key \
+    RUNPOD_SSH_KEY=$fake_home/.ssh/gpu_dev_ed25519 \
+    "$root/gpu" up book-persistent 2>&1
+); then
+  printf '%s\n' "$output" >&2
+  if [ -f "$tf_log" ]; then
+    sed -n '1,120p' "$tf_log" >&2
+  fi
+  exit 1
+fi
 
-grep -Fq -- '-var-file='"$root"'/profiles/book-persistent/runpod.tfvars' "$tf_log"
+grep -Fq -- '-var-file='"$root"'/profiles/book-persistent/runpod.tfvars' "$tf_log" || {
+  echo 'profile var-file was not passed to Terraform; calls were:' >&2
+  sed -n '1,120p' "$tf_log" >&2
+  exit 1
+}
 
 echo 'gpu profile test passed'

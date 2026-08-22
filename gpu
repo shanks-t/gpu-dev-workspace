@@ -37,6 +37,22 @@ runpod_api() {
   curl -fsS -H "Authorization: Bearer $RUNPOD_API_KEY" "$@"
 }
 
+load_runpod_api_key() {
+  if [ -n "${RUNPOD_API_KEY:-}" ]; then
+    return 0
+  fi
+  command -v security >/dev/null 2>&1 ||
+    fail "RUNPOD_API_KEY is unset and macOS security is unavailable"
+  RUNPOD_API_KEY=$(
+    security find-generic-password \
+      -a "$USER" \
+      -s "runpod-gpu-workspace" \
+      -w 2>/dev/null
+  ) || fail "RunPod API key not found in macOS Keychain service runpod-gpu-workspace"
+  [ -n "$RUNPOD_API_KEY" ] || fail "RunPod API key in macOS Keychain is empty"
+  export RUNPOD_API_KEY
+}
+
 runpod_pod_id() {
   tf_output pod_id
 }
@@ -313,6 +329,11 @@ cleanup() {
 [ -d "$infra" ] || fail "unsupported provider: $provider"
 command=${1:-}
 shift || true
+if [ "$provider" = runpod ]; then
+  case "$command" in
+    up | down | status | ssh | zed | cleanup) load_runpod_api_key ;;
+  esac
+fi
 case "$command" in
   up) up "$@" ;;
   down) down ;;

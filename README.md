@@ -35,11 +35,17 @@ make lint
 ## RunPod setup (primary)
 
 1. Create a RunPod account and add a payment method.
-2. Create an API key in **Settings > API Keys** and export it:
+2. Create a restricted API key with **Pods: Read/Write**, then store it in the macOS login Keychain:
 
    ```sh
-   export RUNPOD_API_KEY='...'
+   security add-generic-password \
+     -U \
+     -a "$USER" \
+     -s "runpod-gpu-workspace" \
+     -w
    ```
+
+   RunPod commands retrieve it automatically without exposing it in shell history or exporting it in your parent terminal. An explicitly set `RUNPOD_API_KEY` takes precedence.
 
 3. Add the contents of `~/.ssh/id_ed25519.pub` in **Settings > SSH Public Keys**.
 4. Copy and edit the provider inputs:

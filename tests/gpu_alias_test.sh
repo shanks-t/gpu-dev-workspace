@@ -10,12 +10,15 @@ fake_home=$test_root/home
 mkdir -p "$fake_bin" "$fake_home/.ssh"
 
 printf '%s\n' '#!/bin/sh' 'printf "%s\n" '\''{"pod_id":{"value":"pod-test","type":"string"}}'\''' >"$fake_bin/terraform"
-printf '%s\n' '#!/bin/sh' 'printf "%s\n" '\''{"publicIp":"203.0.113.10","portMappings":{"22":10022}}'\''' >"$fake_bin/curl"
+# The generated fake evaluates RUNPOD_API_KEY when the CLI invokes curl.
+# shellcheck disable=SC2016
+printf '%s\n' '#!/bin/sh' '[ "$RUNPOD_API_KEY" = test-api-key ] || exit 1' 'printf "%s\n" '\''{"publicIp":"203.0.113.10","portMappings":{"22":10022}}'\''' >"$fake_bin/curl"
+printf '%s\n' '#!/bin/sh' 'printf "%s\n" test-api-key' >"$fake_bin/security"
 printf '%s\n' '#!/bin/sh' 'exit 0' >"$fake_bin/ssh"
 # The generated fake expands $1 when Zed invokes it, not while this test writes it.
 # shellcheck disable=SC2016
 printf '%s\n' '#!/bin/sh' 'printf "%s\n" "$1"' >"$fake_bin/zed"
-chmod +x "$fake_bin/terraform" "$fake_bin/curl" "$fake_bin/ssh" "$fake_bin/zed"
+chmod +x "$fake_bin/terraform" "$fake_bin/curl" "$fake_bin/security" "$fake_bin/ssh" "$fake_bin/zed"
 
 printf '%s\n' 'Host old-node' '    HostName 192.0.2.1' >"$fake_home/.ssh/config"
 printf '%s\n' test-private-key >"$fake_home/.ssh/gpu_dev_ed25519"
@@ -23,7 +26,6 @@ printf '%s\n' test-private-key >"$fake_home/.ssh/gpu_dev_ed25519"
 output=$(
   HOME=$fake_home \
     PATH=$fake_bin:$PATH \
-    RUNPOD_API_KEY=test-api-key \
     RUNPOD_SSH_KEY=$fake_home/.ssh/gpu_dev_ed25519 \
     "$root/gpu" zed
 )
