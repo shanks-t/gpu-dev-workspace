@@ -15,12 +15,19 @@ RunPod is the default. GCP uses an `n1-standard-4` plus one T4 because G2/L4 mac
 - Terraform 1.8+
 - Zed with its CLI installed (`Cmd+Shift+P`, then `cli: install`)
 - OpenSSH, `curl`, and `jq`
+- ShellCheck (`brew install shellcheck`)
 - An Ed25519 SSH key at `~/.ssh/id_ed25519`, or set `RUNPOD_SSH_KEY` / `GCP_SSH_KEY`
 
 Run the local proof before spending money:
 
 ```sh
 make check
+```
+
+To lint only the CLI script:
+
+```sh
+make lint
 ```
 
 ## RunPod setup (primary)
@@ -81,7 +88,9 @@ The firewall accepts SSH only from the configured `/32`. Update it when your pub
 
 ## Working remotely
 
-`gpu up` waits for full SSH, verifies `nvidia-smi`, and seeds this committed repo into `/workspace/gpu-dev-workspace` once. It creates a remote Git repository without copying local credentials or Terraform state. Add your Git remote there if you want to push; otherwise stop rather than destroy the provider so the workspace persists.
+`gpu up` waits for full SSH, creates the `gpu-runpod` or `gpu-gcp` SSH alias, verifies `nvidia-smi`, and seeds this committed repo into `/workspace/gpu-dev-workspace` once. It creates a remote Git repository without copying local credentials or Terraform state. Add your Git remote there if you want to push; otherwise stop rather than destroy the provider so the workspace persists.
+
+The CLI keeps generated aliases in `~/.ssh/config.d/gpu-workspace-*`. On first use it prepends one `Include` line to `~/.ssh/config` and saves the original as `~/.ssh/config.gpu-workspace.bak`. Existing aliases remain untouched. RunPod connection addresses can change after a stop, so `gpu up`, `gpu ssh`, and `gpu zed` refresh the alias before connecting.
 
 In Zed, run `task: spawn` and select **CUDA: build and run smoke test**. Expected output:
 

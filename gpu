@@ -1,10 +1,14 @@
 #!/bin/sh
 set -eu
 
-root=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+root=$(CDPATH='' cd -- "$(dirname "$0")" && pwd)
 provider=${GPU_PROVIDER:-runpod}
 infra="$root/infra/$provider"
 remote_path=${GPU_REMOTE_PATH:-/workspace/gpu-dev-workspace}
+ssh_dir=$HOME/.ssh
+ssh_config=$ssh_dir/config
+ssh_config_dir=$ssh_dir/config.d
+ssh_include='Include ~/.ssh/config.d/gpu-workspace-*'
 
 usage() {
   echo "usage: GPU_PROVIDER=runpod|gcp ./gpu <up|down|status|ssh|zed|check|destroy>" >&2
@@ -65,6 +69,75 @@ ssh_key() {
   esac
 }
 
+ssh_alias() {
+  printf 'gpu-%s\n' "$provider"
+}
+
+ensure_ssh_config_include() {
+  mkdir -p "$ssh_config_dir"
+  chmod 700 "$ssh_dir" "$ssh_config_dir"
+
+  if [ -f "$ssh_config" ] && grep -Fqx "$ssh_include" "$ssh_config"; then
+    return
+  fi
+  [ ! -L "$ssh_config" ] || fail "$ssh_config is a symlink; add '$ssh_include' at the top manually"
+
+  if [ -f "$ssh_config" ] && [ ! -f "$ssh_config.gpu-workspace.bak" ]; then
+    cp -p "$ssh_config" "$ssh_config.gpu-workspace.bak"
+  fi
+
+  temporary=$(mktemp "$ssh_dir/.config.gpu-workspace.XXXXXX")
+  printf '%s\n' "$ssh_include" >"$temporary"
+  if [ -f "$ssh_config" ]; then
+    cat "$ssh_config" >>"$temporary"
+  fi
+  chmod 600 "$temporary"
+  mv "$temporary" "$ssh_config"
+  echo "gpu: added $ssh_include to $ssh_config"
+}
+
+write_ssh_alias() {
+  host=$1
+  port=$2
+  user=$(ssh_user)
+  key=$(ssh_key)
+  alias=$(ssh_alias)
+  [ -f "$key" ] || fail "SSH private key not found: $key"
+  ensure_ssh_config_include
+
+  target=$ssh_config_dir/gpu-workspace-$provider
+  temporary=$(mktemp "$ssh_config_dir/.gpu-workspace-$provider.XXXXXX")
+  {
+    printf 'Host %s\n' "$alias"
+    printf '    HostName %s\n' "$host"
+    printf '    User %s\n' "$user"
+    printf '    Port %s\n' "$port"
+    printf '    IdentityFile "%s"\n' "$key"
+    printf '%s\n' \
+      '    IdentitiesOnly yes' \
+      '    AddKeysToAgent yes' \
+      '    UseKeychain yes' \
+      '    ForwardAgent no' \
+      '    ServerAliveInterval 30' \
+      '    ServerAliveCountMax 3'
+  } >"$temporary"
+  chmod 600 "$temporary"
+  ssh -F "$temporary" -G "$alias" >/dev/null 2>&1 || {
+    rm -f "$temporary"
+    fail "generated SSH alias is invalid: $alias"
+  }
+  mv "$temporary" "$target"
+  ssh -G "$alias" >/dev/null 2>&1 || fail "generated SSH alias is invalid: $alias"
+  echo "gpu: updated SSH alias $alias"
+}
+
+refresh_ssh_alias() {
+  address=$(endpoint) || fail "provider has no running SSH endpoint"
+  host=${address%%	*}
+  port=${address#*	}
+  write_ssh_alias "$host" "$port"
+}
+
 wait_for_ssh() {
   i=0
   while [ "$i" -lt 120 ]; do
@@ -84,10 +157,8 @@ wait_for_ssh() {
 }
 
 ssh_exec() {
-  address=$(endpoint) || fail "provider has no running SSH endpoint"
-  host=${address%%	*}
-  port=${address#*	}
-  exec ssh -i "$(ssh_key)" -p "$port" "$(ssh_user)@$host" "$@"
+  refresh_ssh_alias
+  exec ssh "$(ssh_alias)" "$@"
 }
 
 up() {
@@ -113,16 +184,18 @@ up() {
   address=$(wait_for_ssh)
   host=${address%%	*}
   port=${address#*	}
-  user=$(ssh_user)
-  key=$(ssh_key)
-  ssh -i "$key" -p "$port" "$user@$host" \
+  write_ssh_alias "$host" "$port"
+  alias=$(ssh_alias)
+  ssh "$alias" \
     "command -v nvidia-smi >/dev/null && nvidia-smi --query-gpu=name,driver_version --format=csv,noheader"
 
+  # remote_path is intentionally expanded locally and quoted for the remote shell.
+  # shellcheck disable=SC2029
   if [ ! -d "$root/.git" ]; then
     echo "gpu: local repository is not committed; skipping workspace seed" >&2
-  elif ! ssh -i "$key" -p "$port" "$user@$host" "test -d '$remote_path/.git'"; then
-    ssh -i "$key" -p "$port" "$user@$host" "mkdir -p '$remote_path'"
-    git -C "$root" archive HEAD | ssh -i "$key" -p "$port" "$user@$host" \
+  elif ! ssh "$alias" "test -d '$remote_path/.git'"; then
+    ssh "$alias" "mkdir -p '$remote_path'"
+    git -C "$root" archive HEAD | ssh "$alias" \
       "tar -x -C '$remote_path' && cd '$remote_path' && git init -q && git add . && git -c user.name='GPU Workspace' -c user.email='gpu-workspace@localhost' commit -qm 'chore: seed workspace'"
   fi
   echo "gpu: ready ($provider); run './gpu zed'"
@@ -157,6 +230,9 @@ check() {
   need ssh
   need curl
   need jq
+  need shellcheck
+  shellcheck "$root/gpu" "$root"/tests/*.sh
+  "$root/tests/gpu_alias_test.sh"
   terraform fmt -check -recursive "$root/infra"
   for dir in "$root/infra/runpod" "$root/infra/gcp"; do
     terraform -chdir="$dir" init -backend=false -input=false >/dev/null
@@ -182,10 +258,8 @@ case "$command" in
   ssh) ssh_exec "$@" ;;
   zed)
     need zed
-    address=$(endpoint) || fail "provider has no running SSH endpoint"
-    host=${address%%	*}
-    port=${address#*	}
-    exec zed "ssh://$(ssh_user)@$host:$port$remote_path"
+    refresh_ssh_alias
+    exec zed "ssh://$(ssh_alias)$remote_path"
     ;;
   check) check ;;
   destroy) destroy ;;
