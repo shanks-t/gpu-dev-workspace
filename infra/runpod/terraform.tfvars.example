@@ -1,0 +1,4 @@
+gpu_type_id = "NVIDIA GeForce RTX 3090"
+volume_in_gb = 50
+interruptible = false
+

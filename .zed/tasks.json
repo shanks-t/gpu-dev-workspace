@@ -1,0 +1,19 @@
+[
+  {
+    "label": "CUDA: build and run smoke test",
+    "command": "mkdir -p build && nvcc -O2 -lineinfo cuda/hello.cu -o build/hello && build/hello",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false
+  },
+  {
+    "label": "GPU: nvidia-smi",
+    "command": "nvidia-smi",
+    "use_new_terminal": false
+  },
+  {
+    "label": "GPU: Nsight Systems smoke profile",
+    "command": "mkdir -p profiles && nsys profile -o profiles/hello --force-overwrite true build/hello",
+    "use_new_terminal": false
+  }
+]
+

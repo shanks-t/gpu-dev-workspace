@@ -1,0 +1,193 @@
+#!/bin/sh
+set -eu
+
+root=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+provider=${GPU_PROVIDER:-runpod}
+infra="$root/infra/$provider"
+remote_path=${GPU_REMOTE_PATH:-/workspace/gpu-dev-workspace}
+
+usage() {
+  echo "usage: GPU_PROVIDER=runpod|gcp ./gpu <up|down|status|ssh|zed|check|destroy>" >&2
+  exit 2
+}
+
+fail() {
+  echo "gpu: $*" >&2
+  exit 1
+}
+
+need() {
+  command -v "$1" >/dev/null 2>&1 || fail "missing command: $1"
+}
+
+tf() {
+  terraform -chdir="$infra" "$@"
+}
+
+runpod_api() {
+  [ -n "${RUNPOD_API_KEY:-}" ] || fail "RUNPOD_API_KEY is not set"
+  curl -fsS -H "Authorization: Bearer $RUNPOD_API_KEY" "$@"
+}
+
+runpod_pod_id() {
+  tf output -raw pod_id 2>/dev/null
+}
+
+runpod_endpoint() {
+  pod_id=$(runpod_pod_id) || return 1
+  runpod_api "https://rest.runpod.io/v1/pods/$pod_id" |
+    jq -er '[.publicIp, (.portMappings["22"] | tostring)] | @tsv'
+}
+
+gcp_endpoint() {
+  printf '%s\t%s\n' "$(tf output -raw public_ip)" 22
+}
+
+endpoint() {
+  case "$provider" in
+    runpod) runpod_endpoint ;;
+    gcp) gcp_endpoint ;;
+    *) fail "unsupported provider: $provider" ;;
+  esac
+}
+
+ssh_user() {
+  case "$provider" in
+    runpod) echo root ;;
+    gcp) tf output -raw ssh_user ;;
+  esac
+}
+
+ssh_key() {
+  case "$provider" in
+    runpod) echo "${RUNPOD_SSH_KEY:-$HOME/.ssh/id_ed25519}" ;;
+    gcp) echo "${GCP_SSH_KEY:-$HOME/.ssh/id_ed25519}" ;;
+  esac
+}
+
+wait_for_ssh() {
+  i=0
+  while [ "$i" -lt 120 ]; do
+    if address=$(endpoint 2>/dev/null); then
+      host=${address%%	*}
+      port=${address#*	}
+      if ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new \
+        -i "$(ssh_key)" -p "$port" "$(ssh_user)@$host" true 2>/dev/null; then
+        printf '%s\t%s\n' "$host" "$port"
+        return
+      fi
+    fi
+    i=$((i + 1))
+    sleep 5
+  done
+  fail "SSH was not ready after 10 minutes"
+}
+
+ssh_exec() {
+  address=$(endpoint) || fail "provider has no running SSH endpoint"
+  host=${address%%	*}
+  port=${address#*	}
+  exec ssh -i "$(ssh_key)" -p "$port" "$(ssh_user)@$host" "$@"
+}
+
+up() {
+  need terraform
+  need curl
+  need jq
+  need ssh
+  tf init -input=false
+  case "$provider" in
+    runpod)
+      if pod_id=$(runpod_pod_id 2>/dev/null); then
+        if ! runpod_api -X POST "https://rest.runpod.io/v1/pods/$pod_id/start" >/dev/null 2>&1; then
+          tf apply -auto-approve
+        fi
+      else
+        tf apply -auto-approve
+      fi
+      ;;
+    gcp) tf apply -auto-approve -var=desired_status=RUNNING ;;
+    *) fail "unsupported provider: $provider" ;;
+  esac
+
+  address=$(wait_for_ssh)
+  host=${address%%	*}
+  port=${address#*	}
+  user=$(ssh_user)
+  key=$(ssh_key)
+  ssh -i "$key" -p "$port" "$user@$host" \
+    "command -v nvidia-smi >/dev/null && nvidia-smi --query-gpu=name,driver_version --format=csv,noheader"
+
+  if [ ! -d "$root/.git" ]; then
+    echo "gpu: local repository is not committed; skipping workspace seed" >&2
+  elif ! ssh -i "$key" -p "$port" "$user@$host" "test -d '$remote_path/.git'"; then
+    ssh -i "$key" -p "$port" "$user@$host" "mkdir -p '$remote_path'"
+    git -C "$root" archive HEAD | ssh -i "$key" -p "$port" "$user@$host" \
+      "tar -x -C '$remote_path' && cd '$remote_path' && git init -q && git add . && git -c user.name='GPU Workspace' -c user.email='gpu-workspace@localhost' commit -qm 'chore: seed workspace'"
+  fi
+  echo "gpu: ready ($provider); run './gpu zed'"
+}
+
+down() {
+  case "$provider" in
+    runpod)
+      pod_id=$(runpod_pod_id) || fail "no managed RunPod Pod"
+      runpod_api -X POST "https://rest.runpod.io/v1/pods/$pod_id/stop" >/dev/null
+      ;;
+    gcp) tf apply -auto-approve -var=desired_status=TERMINATED ;;
+    *) fail "unsupported provider: $provider" ;;
+  esac
+  echo "gpu: $provider stopped; persistent disk storage may still be billed"
+}
+
+status() {
+  case "$provider" in
+    runpod)
+      pod_id=$(runpod_pod_id) || fail "no managed RunPod Pod"
+      runpod_api "https://rest.runpod.io/v1/pods/$pod_id" |
+        jq '{id, name, desiredStatus, gpu: .gpu.displayName, costPerHr, publicIp, sshPort: .portMappings["22"]}'
+      ;;
+    gcp) tf output -json | jq '{name: .instance_name.value, status: .status.value, publicIp: .public_ip.value}' ;;
+    *) fail "unsupported provider: $provider" ;;
+  esac
+}
+
+check() {
+  need terraform
+  need ssh
+  need curl
+  need jq
+  terraform fmt -check -recursive "$root/infra"
+  for dir in "$root/infra/runpod" "$root/infra/gcp"; do
+    terraform -chdir="$dir" init -backend=false -input=false >/dev/null
+    terraform -chdir="$dir" validate
+  done
+  echo "gpu: local checks passed"
+}
+
+destroy() {
+  printf 'Type %s to permanently delete its compute and disk: ' "$provider" >&2
+  read -r answer
+  [ "$answer" = "$provider" ] || fail "destroy cancelled"
+  tf destroy -auto-approve
+}
+
+[ -d "$infra" ] || fail "unsupported provider: $provider"
+command=${1:-}
+shift || true
+case "$command" in
+  up) up ;;
+  down) down ;;
+  status) status ;;
+  ssh) ssh_exec "$@" ;;
+  zed)
+    need zed
+    address=$(endpoint) || fail "provider has no running SSH endpoint"
+    host=${address%%	*}
+    port=${address#*	}
+    exec zed "ssh://$(ssh_user)@$host:$port$remote_path"
+    ;;
+  check) check ;;
+  destroy) destroy ;;
+  *) usage ;;
+esac
