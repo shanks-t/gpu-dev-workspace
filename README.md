@@ -48,7 +48,7 @@ make lint
    cp infra/runpod/terraform.tfvars.example infra/runpod/terraform.tfvars
    ```
 
-5. Start the lab, open it in Zed, and stop it when finished:
+5. Start the ephemeral lab, open it in Zed, and delete it when finished:
 
    ```sh
    ./gpu up
@@ -56,9 +56,17 @@ make lint
    ./gpu down
    ```
 
-The first `up` creates the Pod. Later calls resume it. `down` stops compute but keeps the `/workspace` Pod volume, which continues to incur storage charges. `destroy` permanently deletes resources and requires typing the provider name.
+By default, `up` creates no persistent Pod volume. `/workspace` lives on the container disk, and `down` destroys the Pod and its data so no managed stopped-volume charge remains.
 
-The default storage layout uses a 40 GB container disk for the image and OS plus a 50 GB persistent volume at `/workspace`. The container disk is discarded on stop. Source, virtual environments, model caches, Triton caches, profiler output, checkpoints, and small datasets belong under `/workspace`; the Terraform environment redirects common framework caches there automatically. At current rates, retaining the stopped 50 GB Pod volume costs about $10/month.
+Select the declarative `book-persistent` profile when you deliberately want the workspace to survive `down`:
+
+```sh
+./gpu up book-persistent
+./gpu down
+./gpu cleanup
+```
+
+The profile at `profiles/book-persistent/runpod.tfvars` adds a 50 GB `/workspace` Pod volume. Terraform derives that `down` should stop rather than destroy from its persistence setting. Every `up` for that workspace must select the same profile; this guard prevents an accidental profile change from deleting data. `cleanup` requires confirmation and deletes the managed Pod and volume. At current rates, retaining it while stopped costs about $10/month.
 
 RunPod Community hosts must support a public IP for Zed's full SSH connection. If a selected host has no public IP, choose another GPU or Secure Cloud machine.
 
@@ -88,18 +96,33 @@ The configuration pins RunPod's Terraform provider to 1.0.8. Version 1.0.9 curre
    GPU_PROVIDER=gcp ./gpu down
    ```
 
-The firewall accepts SSH only from the configured `/32`. Update it when your public IP changes. GCP uses a 100 GB standard persistent boot disk, so the whole workspace survives Spot preemption and `down`; disk charges continue at about $4/month at current U.S. standard-disk rates.
+The firewall accepts SSH only from the configured `/32`. Update it when your public IP changes. GCP requires a boot disk; the default `book-ephemeral` profile marks it auto-delete, and `down` destroys the VM and disk. `GPU_PROVIDER=gcp ./gpu up book-persistent` instead declares that `down` should stop the VM and preserve its boot disk. Its storage charge is about $4/month at current U.S. standard-disk rates.
+
+## Workload profiles
+
+Profiles are ordinary Terraform variable files under `profiles/<profile>/<provider>.tfvars`. The CLI only selects a profile and passes its provider file to Terraform. Each file declares the workload's GPU, image, disk sizing, Spot policy, and persistence. Terraform derives lifecycle outputs from those inputs:
+
+```sh
+./gpu up                         # book-ephemeral on RunPod
+./gpu up book-persistent
+GPU_PROVIDER=gcp ./gpu up        # book-ephemeral on GCP
+GPU_PROVIDER=gcp ./gpu up book-persistent
+```
+
+The same profile name exists for each provider, while its concrete machine configuration remains provider-specific. Account-specific values such as the GCP project, SSH key, and source CIDR remain in the ignored `terraform.tfvars` file.
 
 ## Persistence policy
 
 - Git is the source-of-truth backup for code. Provider disks are working storage, not backups.
-- RunPod `down` retains `/workspace`, but `destroy` deletes the Pod volume. Keep only reproducible caches and replaceable public datasets there until provider-independent storage is added.
-- GCP `down` retains its boot disk. Snapshots are deliberately not enabled by default because they add storage cost; a later profile can add incremental snapshots for valuable benchmark checkpoints.
+- Ephemeral mode is the default: `down` deletes compute and its managed disk data.
+- Persistent mode is opt-in with `up book-persistent`: `down` stops compute and retains storage charges.
+- `cleanup` deletes the workspace and persistent storage after provider-name confirmation. RunPod Pod volumes and GCP boot disks are attached to their workspace, so cleanup deletes the managed compute resource too.
+- Snapshots are deliberately not enabled by default because they add storage cost; a later profile can add incremental snapshots for valuable benchmark checkpoints.
 - Keep profiler reports and compact processed datasets. Re-download large public training corpora instead of paying to retain duplicates on every provider.
 
 ## Working remotely
 
-`gpu up` waits for full SSH, creates the `gpu-runpod` or `gpu-gcp` SSH alias, and checks `nvidia-smi`, `nvcc`, Nsight Compute, PyTorch, Triton, and CUDA availability before seeding this committed repo into `/workspace/gpu-dev-workspace`. Nsight Systems is reported separately because it may require the future custom image. The seed creates a remote Git repository without copying local credentials or Terraform state. Add your Git remote there if you want to push; otherwise stop rather than destroy the provider so the workspace persists.
+`gpu up` waits for full SSH, creates the `gpu-runpod` or `gpu-gcp` SSH alias, and checks `nvidia-smi`, `nvcc`, Nsight Compute, PyTorch, Triton, and CUDA availability before seeding this committed repo into `/workspace/gpu-dev-workspace`. Nsight Systems is reported separately because it may require the future custom image. The seed creates a remote Git repository without copying local credentials or Terraform state. Push valuable work to Git before `down` in ephemeral mode.
 
 The CLI keeps generated aliases in `~/.ssh/config.d/gpu-workspace-*`. On first use it prepends one `Include` line to `~/.ssh/config` and saves the original as `~/.ssh/config.gpu-workspace.bak`. Existing aliases remain untouched. RunPod connection addresses can change after a stop, so `gpu up`, `gpu ssh`, and `gpu zed` refresh the alias before connecting.
 
@@ -119,11 +142,11 @@ Useful commands:
 
 ## Cost safety
 
-`down` is intentionally a stop, not a destroy, so the workspace survives. There is not yet a provider-independent idle reaper: RunPod's current Terraform provider marks its old auto-stop fields deprecated, and a local laptop timer is not a reliable cloud failsafe. Until a cloud-side reaper is added, set billing alerts in both providers and always run `gpu down` at the end of a session.
+Terraform derives `down_action` from the profile's persistence setting: `book-ephemeral` destroys the workspace, while `book-persistent` stops compute and leaves storage billable until `cleanup`. There is not yet a provider-independent idle reaper; set billing alerts in both providers and always run `gpu down` at the end of a session.
 
 ## Deliberately deferred
 
 - Vast.ai: add it after RunPod and GCP complete the CUDA smoke test.
 - Custom Docker image: next infrastructure layer if first-launch validation confirms Nsight Systems or other book dependencies are missing.
-- GPU profile abstraction: plain provider variables already select hardware.
+- Additional workload profiles: add them only when an exercise needs different hardware or software.
 - Shared Terraform modules: provider lifecycle and storage semantics are different enough that duplication is safer and smaller.

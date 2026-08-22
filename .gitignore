@@ -4,6 +4,6 @@
 *.tfstate
 *.tfstate.*
 *.tfvars
+!profiles/**/*.tfvars
 *.tfplan
 crash.log
-

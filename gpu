@@ -4,6 +4,7 @@ set -eu
 root=$(CDPATH='' cd -- "$(dirname "$0")" && pwd)
 provider=${GPU_PROVIDER:-runpod}
 infra="$root/infra/$provider"
+default_profile=book-ephemeral
 remote_path=${GPU_REMOTE_PATH:-/workspace/gpu-dev-workspace}
 ssh_dir=$HOME/.ssh
 ssh_config=$ssh_dir/config
@@ -11,7 +12,10 @@ ssh_config_dir=$ssh_dir/config.d
 ssh_include='Include ~/.ssh/config.d/gpu-workspace-*'
 
 usage() {
-  echo "usage: GPU_PROVIDER=runpod|gcp ./gpu <up|down|status|ssh|zed|check|destroy>" >&2
+  cat >&2 <<'EOF'
+usage: GPU_PROVIDER=runpod|gcp ./gpu up [PROFILE]
+       GPU_PROVIDER=runpod|gcp ./gpu <down|status|ssh|zed|check|cleanup>
+EOF
   exit 2
 }
 
@@ -34,7 +38,40 @@ runpod_api() {
 }
 
 runpod_pod_id() {
-  tf output -raw pod_id 2>/dev/null
+  tf_output pod_id
+}
+
+managed_profile() {
+  tf_output profile_name
+}
+
+tf_output() {
+  output_name=$1
+  tf output -json 2>/dev/null |
+    jq -er --arg name "$output_name" '.[$name].value | select(type == "string" and length > 0)'
+}
+
+profile_path() {
+  name=$1
+  case "$name" in
+    '' | *[!A-Za-z0-9_-]*) fail "invalid profile name: $name" ;;
+  esac
+  path=$root/profiles/$name/$provider.tfvars
+  [ -f "$path" ] || fail "profile not found for $provider: $path"
+  printf '%s\n' "$path"
+}
+
+validate_profile() {
+  requested=$1
+  if current=$(managed_profile); then
+    [ "$current" = "$requested" ] ||
+      fail "workspace uses profile '$current'; run 'down' or 'cleanup' before switching to '$requested'"
+  fi
+}
+
+managed_profile_path() {
+  name=$(managed_profile) || fail "no managed $provider workspace"
+  profile_path "$name"
 }
 
 runpod_endpoint() {
@@ -44,7 +81,7 @@ runpod_endpoint() {
 }
 
 gcp_endpoint() {
-  printf '%s\t%s\n' "$(tf output -raw public_ip)" 22
+  printf '%s\t%s\n' "$(tf_output public_ip)" 22
 }
 
 endpoint() {
@@ -58,7 +95,7 @@ endpoint() {
 ssh_user() {
   case "$provider" in
     runpod) echo root ;;
-    gcp) tf output -raw ssh_user ;;
+    gcp) tf_output ssh_user ;;
   esac
 }
 
@@ -162,22 +199,26 @@ ssh_exec() {
 }
 
 up() {
+  [ "$#" -le 1 ] || usage
+  profile=${1:-$default_profile}
   need terraform
   need curl
   need jq
   need ssh
+  profile_file=$(profile_path "$profile")
   tf init -input=false
+  validate_profile "$profile"
   case "$provider" in
     runpod)
       if pod_id=$(runpod_pod_id 2>/dev/null); then
         if ! runpod_api -X POST "https://rest.runpod.io/v1/pods/$pod_id/start" >/dev/null 2>&1; then
-          tf apply -auto-approve
+          tf apply -auto-approve -var-file="$profile_file"
         fi
       else
-        tf apply -auto-approve
+        tf apply -auto-approve -var-file="$profile_file"
       fi
       ;;
-    gcp) tf apply -auto-approve -var=desired_status=RUNNING ;;
+    gcp) tf apply -auto-approve -var=desired_status=RUNNING -var-file="$profile_file" ;;
     *) fail "unsupported provider: $provider" ;;
   esac
 
@@ -207,19 +248,27 @@ up() {
     git -C "$root" archive HEAD | ssh "$alias" \
       "tar -x -C '$remote_path' && cd '$remote_path' && git init -q && git add . && git -c user.name='GPU Workspace' -c user.email='gpu-workspace@localhost' commit -qm 'chore: seed workspace'"
   fi
-  echo "gpu: ready ($provider); run './gpu zed'"
+  echo "gpu: ready ($provider, profile=$profile); run './gpu zed'"
 }
 
 down() {
+  profile_file=$(managed_profile_path)
+  down_action=$(tf_output down_action) || fail "profile has no down_action output"
+  if [ "$down_action" = destroy ]; then
+    tf destroy -auto-approve -var-file="$profile_file"
+    echo "gpu: ephemeral $provider workspace deleted; no managed disk was retained"
+    return
+  fi
+  [ "$down_action" = stop ] || fail "unsupported profile down_action: $down_action"
   case "$provider" in
     runpod)
       pod_id=$(runpod_pod_id) || fail "no managed RunPod Pod"
       runpod_api -X POST "https://rest.runpod.io/v1/pods/$pod_id/stop" >/dev/null
       ;;
-    gcp) tf apply -auto-approve -var=desired_status=TERMINATED ;;
+    gcp) tf apply -auto-approve -var=desired_status=TERMINATED -var-file="$profile_file" ;;
     *) fail "unsupported provider: $provider" ;;
   esac
-  echo "gpu: $provider stopped; persistent disk storage may still be billed"
+  echo "gpu: persistent $provider workspace stopped; storage remains and may still be billed"
 }
 
 status() {
@@ -241,8 +290,11 @@ check() {
   need jq
   need shellcheck
   shellcheck "$root/gpu" "$root"/scripts/* "$root"/tests/*.sh
-  "$root/tests/gpu_alias_test.sh"
+  for test_script in "$root"/tests/*.sh; do
+    "$test_script"
+  done
   terraform fmt -check -recursive "$root/infra"
+  terraform fmt -check -recursive "$root/profiles"
   for dir in "$root/infra/runpod" "$root/infra/gcp"; do
     terraform -chdir="$dir" init -backend=false -input=false >/dev/null
     terraform -chdir="$dir" validate
@@ -250,18 +302,19 @@ check() {
   echo "gpu: local checks passed"
 }
 
-destroy() {
+cleanup() {
+  profile_file=$(managed_profile_path)
   printf 'Type %s to permanently delete its compute and disk: ' "$provider" >&2
   read -r answer
-  [ "$answer" = "$provider" ] || fail "destroy cancelled"
-  tf destroy -auto-approve
+  [ "$answer" = "$provider" ] || fail "cleanup cancelled"
+  tf destroy -auto-approve -var-file="$profile_file"
 }
 
 [ -d "$infra" ] || fail "unsupported provider: $provider"
 command=${1:-}
 shift || true
 case "$command" in
-  up) up ;;
+  up) up "$@" ;;
   down) down ;;
   status) status ;;
   ssh) ssh_exec "$@" ;;
@@ -271,6 +324,6 @@ case "$command" in
     exec zed "ssh://$(ssh_alias)$remote_path"
     ;;
   check) check ;;
-  destroy) destroy ;;
+  cleanup) cleanup ;;
   *) usage ;;
 esac

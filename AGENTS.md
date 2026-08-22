@@ -30,4 +30,4 @@ RUNPOD_API_KEY="$(
 )" ./gpu up
 ```
 
-Use the same pattern for `./gpu status`, `./gpu down`, and `./gpu destroy`. Revoke and replace the key immediately if it is exposed.
+Use the same pattern for `./gpu status`, `./gpu down`, and `./gpu cleanup`. Revoke and replace the key immediately if it is exposed.

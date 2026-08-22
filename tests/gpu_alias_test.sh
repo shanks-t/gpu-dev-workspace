@@ -9,7 +9,7 @@ fake_bin=$test_root/bin
 fake_home=$test_root/home
 mkdir -p "$fake_bin" "$fake_home/.ssh"
 
-printf '%s\n' '#!/bin/sh' 'printf "%s\n" pod-test' >"$fake_bin/terraform"
+printf '%s\n' '#!/bin/sh' 'printf "%s\n" '\''{"pod_id":{"value":"pod-test","type":"string"}}'\''' >"$fake_bin/terraform"
 printf '%s\n' '#!/bin/sh' 'printf "%s\n" '\''{"publicIp":"203.0.113.10","portMappings":{"22":10022}}'\''' >"$fake_bin/curl"
 printf '%s\n' '#!/bin/sh' 'exit 0' >"$fake_bin/ssh"
 # The generated fake expands $1 when Zed invokes it, not while this test writes it.
