@@ -231,7 +231,7 @@ check() {
   need curl
   need jq
   need shellcheck
-  shellcheck "$root/gpu" "$root"/tests/*.sh
+  shellcheck "$root/gpu" "$root"/scripts/* "$root"/tests/*.sh
   "$root/tests/gpu_alias_test.sh"
   terraform fmt -check -recursive "$root/infra"
   for dir in "$root/infra/runpod" "$root/infra/gcp"; do

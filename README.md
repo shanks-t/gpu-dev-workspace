@@ -10,6 +10,8 @@ GPU_PROVIDER=runpod ./gpu down
 
 RunPod is the default. GCP uses an `n1-standard-4` plus one T4 because G2/L4 machines cannot boot Deep Learning VM images; the T4 path gives us a prebuilt CUDA 12.8 host without maintaining an image yet.
 
+See [GPU_TYPES.md](GPU_TYPES.md) for the current target GPUs, live price snapshots, selection guidance, and source links.
+
 ## Local prerequisites
 
 - Terraform 1.8+
