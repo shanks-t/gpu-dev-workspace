@@ -1,165 +1,179 @@
 # GPU Dev Workspace
 
-A small Terraform control plane for opening the same Zed workspace on RunPod or GCP:
+An inexpensive, disposable GPU development environment for learning CUDA and
+performance engineering. It provisions a GPU on RunPod or Google Cloud, opens
+the workspace over SSH in Zed, and gives developers a short path from their Mac
+to hands-on [GPU MODE](https://github.com/gpu-mode/lectures) exercises.
 
-```sh
-GPU_PROVIDER=runpod ./gpu up
-GPU_PROVIDER=runpod ./gpu zed
-GPU_PROVIDER=runpod ./gpu down
-```
+The default learning target is a single, low-cost GPU. It is enough for CUDA C++,
+PyTorch, Triton, profiling, and most single-GPU experiments. It is not intended
+to reproduce multi-GPU or Blackwell-only results.
 
-RunPod currently defaults to a non-interruptible Community RTX 3090 with the project-owned CUDA 13.0/PyTorch 2.9.1 development image. This remains unchanged until the provider-owned `official-fundamentals` template and `performance-full` complete equivalent live trials. The RTX 3090 is the cheapest current target that supports the architecture-neutral single-GPU exercises. GCP defaults to a Spot `n1-standard-4` plus one T4 with a managed CUDA 12.9/PyTorch 2.9 image because G2/L4 machines cannot boot Deep Learning VM images.
+## Start here
 
-See [GPU_TYPES.md](GPU_TYPES.md) for the current target GPUs, live price snapshots, selection guidance, and source links.
-
-See [IMAGE.md](IMAGE.md) for the image build, publication, validation, and startup-measurement workflow. See [DEVELOPMENT_WORKFLOWS.md](DEVELOPMENT_WORKFLOWS.md) for remote-first and local-first iterative development loops. Remaining work is tracked in [task.md](task.md).
-
-See [IMAGE_RECOMMENDATION.md](IMAGE_RECOMMENDATION.md) for the exercise-to-image decision and the evidence still required before changing the default.
-
-## Local prerequisites
-
-- Terraform 1.8+
-- Zed with its CLI installed (`Cmd+Shift+P`, then `cli: install`)
-- OpenSSH, `curl`, and `jq`
-- ShellCheck (`brew install shellcheck`)
-- A RunPod Ed25519 SSH key at `~/.ssh/gpu_dev_ed25519`; GCP defaults to `~/.ssh/id_ed25519`. Either can be overridden with `RUNPOD_SSH_KEY` / `GCP_SSH_KEY`.
-
-Run the local proof before spending money:
-
-```sh
-make check
-```
-
-To lint only the CLI script:
-
-```sh
-make lint
-```
-
-## RunPod setup (primary)
-
-1. Create a RunPod account and add a payment method.
-2. Create a restricted API key with **Pods: Read/Write**, then store it in the macOS login Keychain:
+1. Install the local tools: Terraform 1.8+, OpenSSH, `curl`, `jq`, and
+   ShellCheck. Install Zed and its CLI (`Cmd+Shift+P` → **cli: install**) to
+   open the remote workspace.
+2. From this repository, prove the local tooling before provisioning anything:
 
    ```sh
-   security add-generic-password \
-     -U \
-     -a "$USER" \
-     -s "runpod-gpu-workspace" \
-     -w
+   make check
    ```
 
-   RunPod commands retrieve it automatically without exposing it in shell history or exporting it in your parent terminal. An explicitly set `RUNPOD_API_KEY` takes precedence.
-
-3. Add the contents of `~/.ssh/gpu_dev_ed25519.pub` in **Settings > SSH Public Keys**.
-4. Copy and edit the provider inputs:
-
-   ```sh
-   cp infra/runpod/terraform.tfvars.example infra/runpod/terraform.tfvars
-   ```
-
-5. Start the ephemeral lab, open it in Zed, and delete it when finished:
+3. Set up **one** provider below. RunPod is the recommended first path; GCP is
+   the fallback when its quota and capacity are available.
+4. Start a workspace, open it, and stop it when finished:
 
    ```sh
-   ./gpu up
+   ./gpu up basics-cuda
    ./gpu zed
    ./gpu down
    ```
 
-By default, `up` creates no persistent Pod volume. `/workspace` lives on the container disk, and `down` destroys the Pod and its data so no managed stopped-volume charge remains.
+`down` is important: the default learning profiles are ephemeral and remove
+their managed compute and storage. Use `./gpu status` at any time to see what
+is running.
 
-Select the declarative `book-persistent` profile when you deliberately want the workspace to survive `down`:
+## RunPod — recommended
+
+RunPod Community is usually the simplest and least expensive way to begin. The
+`basics-cuda` profile uses one RTX 3090 when capacity is available.
+
+### One-time account and SSH setup
+
+1. Create a RunPod account and payment method.
+2. Create a **Restricted** API key with **Pods: Read/Write** only. Do not use
+   an all-access key.
+3. Store the key in the macOS login Keychain. The `security` command prompts
+   for the secret, so it is not placed in shell history:
+
+   ```sh
+   security add-generic-password -U -a "$USER" \
+     -s "runpod-gpu-workspace" -w
+   ```
+
+   The `gpu` CLI reads this Keychain item automatically. Set `RUNPOD_API_KEY`
+   only for temporary or CI use.
+4. Create a dedicated SSH key if you do not already have one, then add its
+   public half in the RunPod **SSH Public Keys** settings:
+
+   ```sh
+   test -f "$HOME/.ssh/gpu_dev_ed25519" || \
+     ssh-keygen -t ed25519 -f "$HOME/.ssh/gpu_dev_ed25519" \
+       -C "$USER@gpu-dev-workspace"
+   cat "$HOME/.ssh/gpu_dev_ed25519.pub"
+   ```
+
+### Daily loop
 
 ```sh
-./gpu up book-persistent
-./gpu down
-./gpu cleanup
+./gpu up basics-cuda       # provision, wait for SSH, and run a GPU smoke test
+./gpu zed                  # open /workspace/gpu-dev-workspace in Zed
+./gpu ssh nvidia-smi       # optional: inspect the assigned GPU
+./gpu status               # optional: inspect lifecycle and cost state
+./gpu down                 # delete the ephemeral workspace
 ```
 
-The profile at `profiles/book-persistent/runpod.tfvars` adds a 50 GB `/workspace` Pod volume. Terraform derives that `down` should stop rather than destroy from its persistence setting. Every `up` for that workspace must select the same profile; this guard prevents an accidental profile change from deleting data. `cleanup` requires confirmation and deletes the managed Pod and volume. At current rates, retaining it while stopped costs about $10/month.
+The CLI creates and refreshes the `gpu-runpod` SSH alias, including after a
+stopped Pod receives a new address. It seeds the committed repository into the
+remote workspace; push or otherwise copy valuable remote-first work before
+tearing down an ephemeral Pod.
 
-RunPod Community hosts must support a public IP for Zed's full SSH connection. If a selected host has no public IP, choose another GPU or Secure Cloud machine.
+## Google Cloud — fallback
 
-The configuration pins RunPod's Terraform provider to 1.0.8. Version 1.0.9 currently publishes an invalid schema and fails before Terraform can validate any configuration; retest before upgrading.
+Google Cloud uses a Spot T4 profile as the lower-cost fallback. Before the
+first run, create a billed project, enable Compute Engine, and request the
+required GPU quota in the chosen region. GPU quota and capacity are separate:
+quota alone does not guarantee that a zone has a GPU available.
 
-## GCP setup (fallback)
-
-1. Create a billed GCP project, enable the Compute Engine API, and request one T4 GPU quota in `us-west1` if the project has none.
-2. Install and authenticate the Google Cloud CLI for Application Default Credentials:
+1. Install the Google Cloud CLI and authenticate Terraform with Application
+   Default Credentials:
 
    ```sh
    gcloud auth application-default login
    ```
 
-3. Find your current public IPv4 address and copy the example inputs:
+2. Create or choose the SSH key the VM will accept, then copy its **public**
+   key line and current public IPv4 address:
 
    ```sh
+   test -f "$HOME/.ssh/id_ed25519" || \
+     ssh-keygen -t ed25519 -f "$HOME/.ssh/id_ed25519" \
+       -C "$USER@gpu-dev-workspace"
+   cat "$HOME/.ssh/id_ed25519.pub"
    curl -4 https://ifconfig.me
+   ```
+
+3. Create your ignored local configuration and fill in the project ID, public
+   key, and IP address with `/32`:
+
+   ```sh
    cp infra/gcp/terraform.tfvars.example infra/gcp/terraform.tfvars
    ```
 
-4. Put the project ID, public key line, and your IP with `/32` in `terraform.tfvars`, then run:
+4. Provision and use the GCP profile:
 
    ```sh
-   GPU_PROVIDER=gcp ./gpu up
+   GPU_PROVIDER=gcp ./gpu up book-ephemeral
    GPU_PROVIDER=gcp ./gpu zed
    GPU_PROVIDER=gcp ./gpu down
    ```
 
-The firewall accepts SSH only from the configured `/32`. Update it when your public IP changes. GCP requires a boot disk; the default `book-ephemeral` profile marks it auto-delete, and `down` destroys the VM and disk. `GPU_PROVIDER=gcp ./gpu up book-persistent` instead declares that `down` should stop the VM and preserve its boot disk. Its storage charge is about $4/month at current U.S. standard-disk rates.
+The firewall permits SSH only from the configured `/32`; update
+`ssh_source_cidr` if your network changes. `terraform.tfvars` is ignored and
+must never be committed.
 
-## Workload profiles
+## Work through GPU MODE Lecture 001
 
-Profiles are ordinary Terraform variable files under `profiles/<profile>/<provider>.tfvars`. The CLI only selects a profile and passes its provider file to Terraform. Each file declares the workload's GPU, image, disk sizing, Spot policy, and persistence. Terraform derives lifecycle outputs from those inputs:
-
-```sh
-./gpu up                         # book-ephemeral on RunPod
-./gpu up book-persistent
-./gpu up official-fundamentals   # provider-owned PyTorch template; retained 50 GB workspace
-./gpu up gpu-mode-lecture-001   # CUDA/PyTorch/Triton/Numba profiling curriculum
-GPU_PROVIDER=gcp ./gpu up        # book-ephemeral on GCP
-GPU_PROVIDER=gcp ./gpu up book-persistent
-```
-
-The same profile name exists for each provider, while its concrete machine configuration remains provider-specific. `official-fundamentals` is RunPod-only: it deploys a Pod from the existing `runpod-torch-v280` provider template; Terraform does not create, modify, or delete that template. Terraform does declaratively own the Pod and its 50 GB `/workspace` Pod volume, so `down` stops compute and `cleanup` deletes the Pod and retained volume. Account-specific values such as the GCP project, SSH key, and source CIDR remain in the ignored `terraform.tfvars` file.
-
-`gpu-mode-lecture-001` is also RunPod-only and uses the project-owned image because the exercises require pinned Triton, Numba, Matplotlib, Transformers, and both Nsight profilers. Its remote-first instructions live in [curriculum/gpu-mode-lecture-001/README.md](curriculum/gpu-mode-lecture-001/README.md).
-
-## Persistence policy
-
-- Git is the source-of-truth backup for code. Provider disks are working storage, not backups.
-- Ephemeral mode is the default: `down` deletes compute and its managed disk data.
-- Persistent mode is opt-in with `up book-persistent`: `down` stops compute and retains storage charges.
-- `cleanup` deletes the workspace and persistent storage after provider-name confirmation. RunPod Pod volumes and GCP boot disks are attached to their workspace, so cleanup deletes the managed compute resource too.
-- Snapshots are deliberately not enabled by default because they add storage cost; a later profile can add incremental snapshots for valuable benchmark checkpoints.
-- Keep profiler reports and compact processed datasets. Re-download large public training corpora instead of paying to retain duplicates on every provider.
-
-## Working remotely
-
-`gpu up` waits for full SSH, creates the `gpu-runpod` or `gpu-gcp` SSH alias, and runs the image's complete CUDA, Nsight, NumPy, PyTorch, and Triton smoke test before seeding this committed repo into `/workspace/gpu-dev-workspace`. The seed creates a remote Git repository without copying local credentials or Terraform state. Push valuable work to Git before `down` in ephemeral mode.
-
-The CLI keeps generated aliases in `~/.ssh/config.d/gpu-workspace-*`. On first use it prepends one `Include` line to `~/.ssh/config` and saves the original as `~/.ssh/config.gpu-workspace.bak`. Existing aliases remain untouched. RunPod connection addresses can change after a stop, so `gpu up`, `gpu ssh`, and `gpu zed` refresh the alias before connecting.
-
-In Zed, run `task: spawn` and select **CUDA: build and run smoke test**. Expected output:
-
-```text
-CUDA answer: 42
-```
-
-Useful commands:
+After the basic CUDA path works, use the repository’s runnable, attributed
+adaptation of GPU MODE's first lecture: PyTorch profiling, inline C++/CUDA,
+Triton, and Numba.
 
 ```sh
-./gpu status
-./gpu ssh
-./gpu ssh nvidia-smi
+./gpu up gpu-mode-lecture-001
+./gpu zed
 ```
 
-## Cost safety
+Follow the [lecture guide](curriculum/gpu-mode-lecture-001/README.md) in the
+remote workspace. This advanced profile retains a 50 GB workspace so compiler
+caches and profiler artifacts survive `down`; it therefore continues to incur
+storage cost until you run `./gpu cleanup`. It also requires the project image
+to be published and, while that image is private, its RunPod registry
+authentication ID in `infra/runpod/terraform.tfvars`.
 
-Terraform derives `down_action` from the profile's persistence setting: `book-ephemeral` destroys the workspace, while `book-persistent` stops compute and leaves storage billable until `cleanup`. There is not yet a provider-independent idle reaper; set billing alerts in both providers and always run `gpu down` at the end of a session.
+## CLI reference
 
-## Deliberately deferred
+| Command | What it does |
+| --- | --- |
+| `./gpu up [PROFILE]` | Provision or start a workspace, wait for SSH, validate the GPU environment, and seed the repository. |
+| `./gpu zed` | Open the remote workspace in Zed. |
+| `./gpu ssh [COMMAND]` | Open a shell or run one command through the managed SSH alias. |
+| `./gpu status` | Show the provider's workspace state and retained-storage status. |
+| `./gpu down` | Delete an ephemeral workspace or stop a persistent one. |
+| `./gpu cleanup` | Permanently delete a persistent workspace and its storage after confirmation. |
+| `make check` | Run shell, test, Terraform formatting, and Terraform validation checks locally. |
 
-- Vast.ai: add it after RunPod and GCP complete the CUDA smoke test.
-- Additional workload profiles: add them only when an exercise needs different hardware or software.
-- Shared Terraform modules: provider lifecycle and storage semantics are different enough that duplication is safer and smaller.
+Set `GPU_PROVIDER=runpod` (the default) or `GPU_PROVIDER=gcp` before any CLI
+command. Profiles describe the GPU, image, capacity policy, and lifecycle;
+see `profiles/<profile>/<provider>.tfvars` for their exact choices.
+
+## Safety and cost rules
+
+- Treat provider workspaces as disposable compute, not backups.
+- Keep code in Git; `down` removes the default workspace and its remote edits.
+- Prefer the small learning profiles. Pick larger hardware only when an
+  exercise explicitly requires it.
+- Set provider billing alerts. There is no provider-independent idle reaper.
+- Use `cleanup` after finishing any persistent profile.
+- Keep API keys, private keys, and local `terraform.tfvars` files out of Git.
+
+## More detail
+
+- [GPU targets and current pricing](docs/GPU_TYPES.md)
+- [Remote-first and local-first development workflows](docs/DEVELOPMENT_WORKFLOWS.md)
+- [Image build and validation workflow](docs/IMAGE.md)
+- [Image/profile recommendations](docs/IMAGE_RECOMMENDATION.md)
+- [Spec workflow for scoped changes](specs/README.md)
+
+The full upstream lecture catalogue lives in the
+[GPU MODE lectures repository](https://github.com/gpu-mode/lectures).
