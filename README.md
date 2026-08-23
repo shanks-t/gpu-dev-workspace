@@ -116,11 +116,14 @@ Profiles are ordinary Terraform variable files under `profiles/<profile>/<provid
 ./gpu up                         # book-ephemeral on RunPod
 ./gpu up book-persistent
 ./gpu up official-fundamentals   # provider-owned PyTorch template; retained 50 GB workspace
+./gpu up gpu-mode-lecture-001   # CUDA/PyTorch/Triton/Numba profiling curriculum
 GPU_PROVIDER=gcp ./gpu up        # book-ephemeral on GCP
 GPU_PROVIDER=gcp ./gpu up book-persistent
 ```
 
 The same profile name exists for each provider, while its concrete machine configuration remains provider-specific. `official-fundamentals` is RunPod-only: it deploys a Pod from the existing `runpod-torch-v280` provider template; Terraform does not create, modify, or delete that template. Terraform does declaratively own the Pod and its 50 GB `/workspace` Pod volume, so `down` stops compute and `cleanup` deletes the Pod and retained volume. Account-specific values such as the GCP project, SSH key, and source CIDR remain in the ignored `terraform.tfvars` file.
+
+`gpu-mode-lecture-001` is also RunPod-only and uses the project-owned image because the exercises require pinned Triton, Numba, Matplotlib, Transformers, and both Nsight profilers. Its remote-first instructions live in [curriculum/gpu-mode-lecture-001/README.md](curriculum/gpu-mode-lecture-001/README.md).
 
 ## Persistence policy
 

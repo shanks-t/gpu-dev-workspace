@@ -18,11 +18,20 @@ python - <<'PY'
 import numpy
 import torch
 import triton
+import matplotlib
+import numba
+import transformers
 
 assert numpy.__version__ == "2.3.5", numpy.__version__
 assert torch.__version__ == "2.9.1+cu130", torch.__version__
 assert triton.__version__ == "3.5.1", triton.__version__
-print(f"NumPy {numpy.__version__}; PyTorch {torch.__version__}; Triton {triton.__version__}")
+assert numba.__version__ == "0.67.0", numba.__version__
+assert matplotlib.__version__ == "3.11.1", matplotlib.__version__
+assert transformers.__version__ == "5.15.1", transformers.__version__
+print(
+    f"NumPy {numpy.__version__}; PyTorch {torch.__version__}; Triton {triton.__version__}; "
+    f"Numba {numba.__version__}; Matplotlib {matplotlib.__version__}; Transformers {transformers.__version__}"
+)
 PY
 
 nvcc --version | tail -n 1

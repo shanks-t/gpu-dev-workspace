@@ -39,6 +39,12 @@ RUN python -m pip install --no-cache-dir --upgrade pip==26.0.1 \
         -r /tmp/requirements-cuda.txt \
     && rm /tmp/requirements-base.txt /tmp/requirements-cuda.txt
 
+# Course-specific dependencies live in their own layer. This preserves the
+# expensive CUDA/PyTorch layer when a curriculum package changes.
+COPY image/requirements-gpu-mode-lecture-001.txt /tmp/
+RUN python -m pip install --no-cache-dir -r /tmp/requirements-gpu-mode-lecture-001.txt \
+    && rm /tmp/requirements-gpu-mode-lecture-001.txt
+
 # Keep source-only version/revision changes out of the dependency layers so
 # published images retain cache reuse across commits.
 LABEL org.opencontainers.image.title="GPU Development Workspace" \

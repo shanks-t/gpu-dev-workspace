@@ -16,6 +16,7 @@ Image version `0.1.0` contains:
 | NumPy | 2.3.5 |
 | PyTorch | 2.9.1+cu130 |
 | Triton | 3.5.1 |
+| GPU MODE Lecture 001 extras | Numba 0.67.0, Matplotlib 3.11.1, Transformers 5.15.1 |
 
 The NVIDIA CUDA base is pinned by its `linux/amd64` manifest digest. Apt packages, Python packages, and direct Python dependencies are pinned explicitly. Password SSH is disabled; the startup script generates unique host keys and installs RunPod's `PUBLIC_KEY` as root's authorized key.
 
