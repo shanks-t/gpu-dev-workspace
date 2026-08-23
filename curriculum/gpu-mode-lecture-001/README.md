@@ -55,6 +55,7 @@ nsys --version
 Run the scripts in this order so each new tool is introduced separately:
 
 ```sh
+cat 01-pytorch-square.md
 python pytorch_square.py
 python pt_profiler.py
 python hello_load_inline.py
@@ -62,6 +63,10 @@ python load_inline.py
 python numba_square.py
 python triton_square.py
 ```
+
+Start with the learner-owned [Exercise 01 guide](01-pytorch-square.md). It
+explains the baseline, what to inspect in the PyTorch profiler, and the
+questions to answer before implementing an inline CUDA kernel.
 
 The first inline-CUDA and Triton executions compile and populate caches, so
 they are intentionally slower. `triton_square.py` writes its benchmark output
