@@ -15,6 +15,7 @@ lint:
 
 test:
 	@tests/gpu_alias_test.sh
+	@tests/gpu_direct_ssh_test.sh
 
 spec:
 	@scripts/new-spec "$(name)" "$(title)"

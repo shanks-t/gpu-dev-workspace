@@ -86,6 +86,21 @@ stopped Pod receives a new address. It seeds the committed repository into the
 remote workspace; push or otherwise copy valuable remote-first work before
 tearing down an ephemeral Pod.
 
+### RunPod direct-SSH requirement
+
+`gpu up`, `gpu ssh`, and `gpu zed` require RunPod to assign a public IP and a
+TCP mapping for port 22. They use direct, non-interactive SSH to validate CUDA,
+seed the repository, and open Zed Remote Development. RunPod's basic
+`<pod>-<token>@ssh.runpod.io` proxy is useful for an interactive rescue shell,
+but it does not support this workflow or file-transfer protocols.
+
+The currently pinned RunPod Terraform provider (`1.0.8`) cannot request the
+RunPod API's `supportPublicIp` option. Do not treat proxy SSH as a workaround:
+the CLI now reports this condition explicitly. Upgrade the provider and add
+`support_public_ip = true` to `runpod_pod.lab` only after a provider release
+passes `terraform validate`; provider `1.0.9` is intentionally not selected
+because it currently has an invalid `endpoint_workers` schema.
+
 ## Google Cloud — fallback
 
 Google Cloud uses a Spot T4 profile as the lower-cost fallback. Before the

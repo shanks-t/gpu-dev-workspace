@@ -193,7 +193,31 @@ managed_profile_path() {
 runpod_endpoint() {
   pod_id=$(runpod_pod_id) || return 1
   runpod_api "https://rest.runpod.io/v1/pods/$pod_id" |
-    jq -er '[.publicIp, (.portMappings["22"] | tostring)] | @tsv'
+    jq -er '
+      .publicIp as $ip |
+      .portMappings["22"] as $port |
+      select(
+        ($ip | type == "string" and length > 0) and
+        (
+          ($port | type == "number" and . > 0) or
+          ($port | type == "string" and test("^[1-9][0-9]*$"))
+        )
+      ) |
+      [$ip, ($port | tostring)] | @tsv
+    '
+}
+
+runpod_direct_ssh_diagnostic() {
+  pod_id=$(runpod_pod_id) || return 0
+  pod=$(runpod_api "https://rest.runpod.io/v1/pods/$pod_id" 2>/dev/null) || return 0
+  if printf '%s' "$pod" | jq -e '
+    (.publicIp | type != "string" or length == 0) or
+    (.portMappings["22"] == null)
+  ' >/dev/null 2>&1; then
+    echo "gpu: RunPod Pod $pod_id has no public TCP port 22 endpoint." >&2
+    echo "gpu: it may be reachable through RunPod's interactive SSH proxy, but that proxy cannot run this CLI's non-interactive validation, repository seed, or Zed workflow." >&2
+    echo "gpu: redeploy with a public IP and 22/tcp exposed; see README.md#runpod-direct-ssh-requirement." >&2
+  fi
 }
 
 gcp_endpoint() {
@@ -287,7 +311,10 @@ write_ssh_alias() {
 }
 
 refresh_ssh_alias() {
-  address=$(endpoint) || fail "provider has no running SSH endpoint"
+  address=$(endpoint) || {
+    [ "$provider" != runpod ] || runpod_direct_ssh_diagnostic
+    fail "provider has no running direct SSH endpoint"
+  }
   host=${address%%	*}
   port=${address#*	}
   write_ssh_alias "$host" "$port"
@@ -314,7 +341,8 @@ wait_for_ssh() {
     i=$((i + 1))
     sleep 5
   done
-  fail "SSH was not ready after 10 minutes"
+  [ "$provider" != runpod ] || runpod_direct_ssh_diagnostic
+  fail "direct SSH was not ready after 10 minutes"
 }
 
 record_startup_timings() {
