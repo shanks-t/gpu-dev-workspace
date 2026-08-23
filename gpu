@@ -67,7 +67,7 @@ managed_profile() {
 tf_output() {
   output_name=$1
   tf output -json 2>/dev/null |
-    jq -er --arg name "$output_name" '.[$name].value | select(type == "string" and length > 0)'
+    jq -er --arg name "$output_name" '.[$name].value | select(type == "string" or type == "number" or type == "boolean") | tostring | select(length > 0)'
 }
 
 profile_path() {
