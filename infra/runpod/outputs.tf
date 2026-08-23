@@ -13,6 +13,11 @@ output "pod_id" {
   value       = runpod_pod.lab.id
 }
 
+output "image_name" {
+  description = "Immutable development image selected by the workload profile."
+  value       = runpod_template.lab.image_name
+}
+
 output "profile_name" {
   description = "Name of the profile that created the managed workspace."
   value       = var.profile_name
@@ -21,4 +26,9 @@ output "profile_name" {
 output "status" {
   description = "Current RunPod Pod status reported by the provider."
   value       = runpod_pod.lab.status
+}
+
+output "template_id" {
+  description = "Terraform-managed private RunPod template identifier."
+  value       = runpod_template.lab.id
 }

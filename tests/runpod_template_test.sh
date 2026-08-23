@@ -1,0 +1,29 @@
+#!/bin/sh
+set -eu
+
+root=$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)
+main=$root/infra/runpod/main.tf
+
+grep -Fq 'resource "runpod_template" "lab"' "$main"
+grep -Fq 'template_id       = runpod_template.lab.id' "$main"
+grep -Fq 'is_public                  = false' "$main"
+
+template_block=$(sed -n '/resource "runpod_template" "lab" {/,/^}/p' "$main")
+if printf '%s\n' "$template_block" | grep -Eq 'volume_in_gb|volume_mount_path|gpu_type_id|gpu_count'; then
+  echo "RunPod template unexpectedly owns hardware or persistent storage" >&2
+  exit 1
+fi
+
+for profile in "$root"/profiles/*/runpod.tfvars; do
+  image=$(sed -n 's/^image_name[[:space:]]*=[[:space:]]*"\([^"]*\)"/\1/p' "$profile")
+  case "$image" in
+    ghcr.io/*:[0-9]*.[0-9]*.[0-9]* | ghcr.io/*:sha-????????????????????????????????????????)
+      ;;
+    *)
+      echo "profile does not use an immutable GHCR image reference: $profile" >&2
+      exit 1
+      ;;
+  esac
+done
+
+echo "RunPod template test passed"

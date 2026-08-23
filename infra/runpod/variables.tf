@@ -16,6 +16,13 @@ variable "container_disk_in_gb" {
   }
 }
 
+variable "container_registry_auth_id" {
+  description = "Optional RunPod container registry credential ID required when the GHCR image is private."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
 variable "gpu_count" {
   description = "Number of GPUs assigned to the Pod."
   type        = number
@@ -31,8 +38,15 @@ variable "gpu_type_id" {
 }
 
 variable "image_name" {
-  description = "Pinned RunPod development image containing the required CUDA toolchain."
+  description = "Immutable semantic-version, commit-derived, or digest reference for the RunPod development image."
   type        = string
+  validation {
+    condition = can(regex(
+      "^ghcr\\.io/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+:(?:[0-9]+\\.[0-9]+\\.[0-9]+|sha-[0-9a-f]{40})$|^ghcr\\.io/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@sha256:[0-9a-f]{64}$",
+      var.image_name,
+    ))
+    error_message = "image_name must be a GHCR semantic-version tag, full sha-<commit> tag, or sha256 digest; latest and floating tags are forbidden."
+  }
 }
 
 variable "interruptible" {
