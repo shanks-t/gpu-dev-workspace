@@ -5,6 +5,7 @@ FROM --platform=linux/amd64 nvidia/cuda:13.0.2-devel-ubuntu24.04@sha256:0eee3094
 ARG DEBIAN_FRONTEND=noninteractive
 ARG IMAGE_VERSION=dev
 ARG IMAGE_REVISION=unknown
+ARG VERIFY_CUDA_COMPILE=false
 
 LABEL org.opencontainers.image.title="GPU Development Workspace" \
       org.opencontainers.image.description="Pinned CUDA, PyTorch, Triton, and Nsight toolchain for GPU performance development" \
@@ -62,7 +63,10 @@ RUN chmod 0755 /usr/local/bin/start-gpu-workspace /usr/local/bin/gpu-image-smoke
         'export VIRTUAL_ENV=/opt/gpu-venv' \
         'export PATH=/opt/gpu-venv/bin:/usr/local/cuda/bin:$PATH' \
         > /etc/profile.d/gpu-workspace.sh \
-    && gpu-image-smoke-test --build
+    && gpu-image-smoke-test --build \
+    && if [ "$VERIFY_CUDA_COMPILE" = "true" ]; then \
+        gpu-image-smoke-test --compile; \
+    fi
 
 ENV HF_HOME=/workspace/.cache/huggingface \
     TORCH_HOME=/workspace/.cache/torch \
