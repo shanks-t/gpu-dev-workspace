@@ -1,6 +1,7 @@
 # Book workspace retained between development sessions.
-profile_name       = "book-persistent"
-persistent_storage = true
+profile_name                        = "book-persistent"
+persistent_storage                  = true
+retained_storage_cost_usd_per_month = 10
 
 gpu_type_id          = "NVIDIA GeForce RTX 3090"
 gpu_count            = 1

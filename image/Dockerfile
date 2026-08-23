@@ -7,12 +7,6 @@ ARG IMAGE_VERSION=dev
 ARG IMAGE_REVISION=unknown
 ARG VERIFY_CUDA_COMPILE=false
 
-LABEL org.opencontainers.image.title="GPU Development Workspace" \
-      org.opencontainers.image.description="Pinned CUDA, PyTorch, Triton, and Nsight toolchain for GPU performance development" \
-      org.opencontainers.image.source="https://github.com/shanks-t/gpu-dev-workspace" \
-      org.opencontainers.image.version="$IMAGE_VERSION" \
-      org.opencontainers.image.revision="$IMAGE_REVISION"
-
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates=20260601~24.04.1 \
@@ -44,6 +38,14 @@ RUN python -m pip install --no-cache-dir --upgrade pip==26.0.1 \
         --index-url https://download.pytorch.org/whl/cu130 \
         -r /tmp/requirements-cuda.txt \
     && rm /tmp/requirements-base.txt /tmp/requirements-cuda.txt
+
+# Keep source-only version/revision changes out of the dependency layers so
+# published images retain cache reuse across commits.
+LABEL org.opencontainers.image.title="GPU Development Workspace" \
+      org.opencontainers.image.description="Pinned CUDA, PyTorch, Triton, and Nsight toolchain for GPU performance development" \
+      org.opencontainers.image.source="https://github.com/shanks-t/gpu-dev-workspace" \
+      org.opencontainers.image.version="$IMAGE_VERSION" \
+      org.opencontainers.image.revision="$IMAGE_REVISION"
 
 COPY image/start-gpu-workspace /usr/local/bin/start-gpu-workspace
 COPY image/smoke-test /usr/local/bin/gpu-image-smoke-test

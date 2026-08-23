@@ -8,11 +8,13 @@ GPU_PROVIDER=runpod ./gpu zed
 GPU_PROVIDER=runpod ./gpu down
 ```
 
-RunPod defaults to a non-interruptible Community RTX 3090 with the project-owned CUDA 13.0/PyTorch 2.9.1 development image. This is the cheapest current target that supports the architecture-neutral single-GPU exercises. GCP defaults to a Spot `n1-standard-4` plus one T4 with a managed CUDA 12.9/PyTorch 2.9 image because G2/L4 machines cannot boot Deep Learning VM images.
+RunPod currently defaults to a non-interruptible Community RTX 3090 with the project-owned CUDA 13.0/PyTorch 2.9.1 development image. This remains unchanged until the provider-owned `official-fundamentals` template and `performance-full` complete equivalent live trials. The RTX 3090 is the cheapest current target that supports the architecture-neutral single-GPU exercises. GCP defaults to a Spot `n1-standard-4` plus one T4 with a managed CUDA 12.9/PyTorch 2.9 image because G2/L4 machines cannot boot Deep Learning VM images.
 
 See [GPU_TYPES.md](GPU_TYPES.md) for the current target GPUs, live price snapshots, selection guidance, and source links.
 
 See [IMAGE.md](IMAGE.md) for the image build, publication, validation, and startup-measurement workflow. See [DEVELOPMENT_WORKFLOWS.md](DEVELOPMENT_WORKFLOWS.md) for remote-first and local-first iterative development loops. Remaining work is tracked in [task.md](task.md).
+
+See [IMAGE_RECOMMENDATION.md](IMAGE_RECOMMENDATION.md) for the exercise-to-image decision and the evidence still required before changing the default.
 
 ## Local prerequisites
 
@@ -113,11 +115,12 @@ Profiles are ordinary Terraform variable files under `profiles/<profile>/<provid
 ```sh
 ./gpu up                         # book-ephemeral on RunPod
 ./gpu up book-persistent
+./gpu up official-fundamentals   # provider-owned PyTorch template; retained 50 GB workspace
 GPU_PROVIDER=gcp ./gpu up        # book-ephemeral on GCP
 GPU_PROVIDER=gcp ./gpu up book-persistent
 ```
 
-The same profile name exists for each provider, while its concrete machine configuration remains provider-specific. Account-specific values such as the GCP project, SSH key, and source CIDR remain in the ignored `terraform.tfvars` file.
+The same profile name exists for each provider, while its concrete machine configuration remains provider-specific. `official-fundamentals` is RunPod-only: it deploys a Pod from the existing `runpod-torch-v280` provider template; Terraform does not create, modify, or delete that template. Terraform does declaratively own the Pod and its 50 GB `/workspace` Pod volume, so `down` stops compute and `cleanup` deletes the Pod and retained volume. Account-specific values such as the GCP project, SSH key, and source CIDR remain in the ignored `terraform.tfvars` file.
 
 ## Persistence policy
 

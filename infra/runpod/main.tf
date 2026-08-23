@@ -1,4 +1,6 @@
 resource "runpod_template" "lab" {
+  count = var.runpod_template_id == "" ? 1 : 0
+
   name                       = "gpu-dev-workspace"
   image_name                 = var.image_name
   is_public                  = false
@@ -19,8 +21,10 @@ resource "runpod_template" "lab" {
 }
 
 resource "runpod_pod" "lab" {
-  name              = "gpu-dev-workspace"
-  template_id       = runpod_template.lab.id
+  name = "gpu-dev-workspace"
+  # An official template is provider-owned. Project-owned images keep using the
+  # private template Terraform creates above.
+  template_id       = var.runpod_template_id != "" ? var.runpod_template_id : runpod_template.lab[0].id
   cloud_type        = var.cloud_type
   gpu_type_id       = var.gpu_type_id
   gpu_count         = var.gpu_count

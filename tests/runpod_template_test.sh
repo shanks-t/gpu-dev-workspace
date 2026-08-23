@@ -5,7 +5,8 @@ root=$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)
 main=$root/infra/runpod/main.tf
 
 grep -Fq 'resource "runpod_template" "lab"' "$main"
-grep -Fq 'template_id       = runpod_template.lab.id' "$main"
+grep -Fq 'count = var.runpod_template_id == "" ? 1 : 0' "$main"
+grep -Fq 'template_id       = var.runpod_template_id != "" ? var.runpod_template_id : runpod_template.lab[0].id' "$main"
 grep -Fq 'is_public                  = false' "$main"
 
 template_block=$(sed -n '/resource "runpod_template" "lab" {/,/^}/p' "$main")
@@ -15,7 +16,11 @@ if printf '%s\n' "$template_block" | grep -Eq 'volume_in_gb|volume_mount_path|gp
 fi
 
 for profile in "$root"/profiles/*/runpod.tfvars; do
+  template_id=$(sed -n 's/^runpod_template_id[[:space:]]*=[[:space:]]*"\([^"]*\)"/\1/p' "$profile")
   image=$(sed -n 's/^image_name[[:space:]]*=[[:space:]]*"\([^"]*\)"/\1/p' "$profile")
+  if [ "$template_id" = "runpod-torch-v280" ] && [ "$image" = "runpod-torch-v280" ]; then
+    continue
+  fi
   case "$image" in
     ghcr.io/*:[0-9]*.[0-9]*.[0-9]* | ghcr.io/*:sha-???????????????????????????????????????? | runpod/*@sha256:????????????????????????????????????????????????????????????????)
       ;;

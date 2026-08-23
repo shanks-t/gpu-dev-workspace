@@ -309,6 +309,28 @@ validate_runpod_image() {
         /tmp/gpu-basics-smoke
         rm -f /tmp/gpu-basics-smoke /tmp/gpu-basics-smoke.cu'
       ;;
+    fundamentals)
+      ssh "$alias" 'set -eu
+        for tool in nvidia-smi nvcc c++ python; do
+          command -v "$tool" >/dev/null || { echo "missing tool: $tool" >&2; exit 1; }
+        done
+        printf "%s\\n" \
+          "#include <cuda_runtime.h>" \
+          "#include <cstdio>" \
+          "int main() { int count = 0; if (cudaGetDeviceCount(&count) != cudaSuccess || count < 1) return 1; std::printf(\"CUDA devices: %d\\n\", count); }" \
+          > /tmp/gpu-fundamentals-smoke.cu
+        nvcc /tmp/gpu-fundamentals-smoke.cu -o /tmp/gpu-fundamentals-smoke
+        /tmp/gpu-fundamentals-smoke
+        rm -f /tmp/gpu-fundamentals-smoke /tmp/gpu-fundamentals-smoke.cu
+        python -c "import numpy, torch; assert torch.cuda.is_available(); value = (torch.ones(1024, device=\"cuda\") * 2).sum().item(); assert value == 2048; print(f\"NumPy {numpy.__version__}; PyTorch {torch.__version__}; CUDA tensor passed\")"
+        for tool in ncu nsys; do
+          if command -v "$tool" >/dev/null; then
+            "$tool" --version | tail -n 1
+          else
+            echo "capability difference: $tool unavailable (use performance-full for profiling)"
+          fi
+        done'
+      ;;
     pytorch)
       ssh "$alias" 'set -eu
         command -v nvidia-smi >/dev/null || { echo "missing tool: nvidia-smi" >&2; exit 1; }
@@ -418,8 +440,11 @@ status() {
   case "$provider" in
     runpod)
       pod_id=$(runpod_pod_id) || fail "no managed RunPod Pod"
+      persistent_storage=$(tf_output persistent_storage 2>/dev/null || echo false)
+      storage_cost=$(tf_output retained_storage_cost_usd_per_month 2>/dev/null || echo 0)
       runpod_api "https://rest.runpod.io/v1/pods/$pod_id" |
-        jq '{id, name, desiredStatus, gpu: .gpu.displayName, costPerHr, publicIp, sshPort: .portMappings["22"]}'
+        jq --argjson persistent "$persistent_storage" --argjson storageCost "$storage_cost" \
+          '{id, name, desiredStatus, gpu: .gpu.displayName, costPerHr, publicIp, sshPort: .portMappings["22"], persistentStorage: $persistent, storage: (if $persistent then {state: "retained and billable until cleanup", mountPath: .volumeMountPath, sizeGb: .volumeInGb, estimatedMonthlyCostUsd: $storageCost} else {state: "none"} end)}'
       ;;
     gcp) tf output -json | jq '{name: .instance_name.value, status: .status.value, publicIp: .public_ip.value}' ;;
     *) fail "unsupported provider: $provider" ;;

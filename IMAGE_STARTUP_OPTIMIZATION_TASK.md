@@ -1,6 +1,6 @@
 # Task: Minimize GPU workspace startup time by workload
 
-- [ ] Make the default fundamentals workspace use the fastest validated provider image, and reserve project-owned images for workloads that require additional pinned tools.
+- [ ] Make the default fundamentals workspace use the fastest validated provider image, and reserve project-owned images for workloads that require additional pinned tools. (Profile wiring and exercise routing are complete; live comparative trials remain.)
 
 The initial benchmark is documented in [STARTUP_BENCHMARK_RESULTS.md](STARTUP_BENCHMARK_RESULTS.md). It exposed separate SSH/GPU readiness milestones and substantial host-to-host variability; a direct official-template comparison remains before changing the default.
 
@@ -52,19 +52,19 @@ References:
 
 ## Recommended next steps
 
-1. [ ] Add an `official-fundamentals` profile that references existing template ID `runpod-torch-v280` instead of creating a user-managed RunPod template.
-2. [ ] Model the official template's 50 GB `/workspace` volume declaratively and verify exactly which resource Terraform owns.
-3. [ ] Update lifecycle behavior for a retained-volume default:
+1. [x] Add an `official-fundamentals` profile that references existing template ID `runpod-torch-v280` instead of creating a user-managed RunPod template.
+2. [x] Model the official template's 50 GB `/workspace` volume declaratively and verify exactly which resource Terraform owns.
+3. [x] Update lifecycle behavior for a retained-volume default:
    - `gpu down` stops compute and preserves the workspace.
    - `gpu status` reports compute state, persistent-storage state, and continuing storage cost.
    - `gpu cleanup` requires confirmation and permanently deletes compute and retained storage.
 4. [ ] Create a read-only GHCR package credential, register it with RunPod, and store only its RunPod registry-authentication ID in ignored local Terraform configuration.
 5. [ ] Confirm RunPod can pull the immutable `performance-full` image without granting package-write access.
-6. [ ] Move mutable OCI version and revision labels after the project image's large dependency layers to preserve layer reuse across source-only commits.
+6. [x] Move mutable OCI version and revision labels after the project image's large dependency layers to preserve layer reuse across source-only commits.
 7. [ ] Run one qualifying trial per candidate before repeating anything. A qualifying trial must pass every readiness and workload check below.
 8. [ ] Run one additional trial per qualifying candidate using the same RTX 3090 Community configuration.
 9. [ ] Compare complete time-to-ready results and choose the bare `./gpu up` default.
-10. [ ] Document which exercises use the selected fundamentals profile and which require `performance-full`.
+10. [x] Document provisional exercise routing for `official-fundamentals` and `performance-full`; finalize it after the qualifying trials.
 
 Do not run a larger cold/warm matrix until both candidates pass once. Failed or unequal smoke tests are not comparable benchmarks.
 
