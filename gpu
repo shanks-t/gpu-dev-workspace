@@ -284,10 +284,22 @@ ssh_exec() {
 validate_runpod_image() {
   alias=$1
   mode=$(tf_output validation_mode)
+  ssh "$alias" 'set -eu
+    attempt=0
+    until nvidia-smi -L >/dev/null 2>&1; do
+      attempt=$((attempt + 1))
+      if [ "$attempt" -ge 60 ]; then
+        echo "GPU was not usable within two minutes after SSH became ready" >&2
+        exit 1
+      fi
+      sleep 2
+    done'
   case "$mode" in
     cuda)
       ssh "$alias" 'set -eu
-        for tool in nvidia-smi nvcc c++; do command -v "$tool" >/dev/null; done
+        for tool in nvidia-smi nvcc c++; do
+          command -v "$tool" >/dev/null || { echo "missing tool: $tool" >&2; exit 1; }
+        done
         printf "%s\n" \
           "#include <cuda_runtime.h>" \
           "#include <cstdio>" \
@@ -299,12 +311,14 @@ validate_runpod_image() {
       ;;
     pytorch)
       ssh "$alias" 'set -eu
-        command -v nvidia-smi >/dev/null
+        command -v nvidia-smi >/dev/null || { echo "missing tool: nvidia-smi" >&2; exit 1; }
         python -c "import numpy, torch; assert torch.cuda.is_available(); value = (torch.ones(1024, device=\"cuda\") * 2).sum().item(); assert value == 2048; print(f\"PyTorch {torch.__version__}; CUDA tensor passed\")"'
       ;;
     nvidia-performance)
       ssh "$alias" 'set -eu
-        for tool in nvidia-smi nvcc ncu nsys python; do command -v "$tool" >/dev/null; done
+        for tool in nvidia-smi nvcc ncu nsys python; do
+          command -v "$tool" >/dev/null || { echo "missing tool: $tool" >&2; exit 1; }
+        done
         ncu --version | tail -n 1
         nsys --version | tail -n 1
         python -c "import torch; assert torch.cuda.is_available(); print(f\"PyTorch {torch.__version__}; CUDA available\")"'
