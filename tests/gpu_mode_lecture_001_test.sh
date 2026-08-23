@@ -8,7 +8,7 @@ lecture=$root/curriculum/gpu-mode-lecture-001
 grep -Eq '^profile_name[[:space:]]*=[[:space:]]*"gpu-mode-lecture-001"$' "$profile"
 grep -Eq '^persistent_storage[[:space:]]*=[[:space:]]*true$' "$profile"
 grep -Eq '^validation_mode[[:space:]]*=[[:space:]]*"performance-full"$' "$profile"
-grep -Eq '^image_name[[:space:]]*=[[:space:]]*"ghcr.io/shanks-t/gpu-dev-workspace:0.1.1"$' "$profile"
+grep -Eq '^image_name[[:space:]]*=[[:space:]]*"ghcr.io/shanks-t/gpu-dev-workspace@sha256:[a-f0-9]{64}"$' "$profile"
 
 for file in LICENSE README.md UPSTREAM.md hello_load_inline.py load_inline.py \
   numba_square.py pt_profiler.py pytorch_square.py triton_square.py; do
