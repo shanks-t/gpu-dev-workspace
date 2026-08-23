@@ -1,9 +1,11 @@
 # GPU MODE Lecture 001
 
-This is our runnable copy of GPU MODE's first CUDA lecture. The upstream
-scripts introduce PyTorch operations and profiling, PyTorch inline C++/CUDA
-extensions, Triton, and Numba. Their source and license are recorded in
-[UPSTREAM.md](UPSTREAM.md).
+This is our runnable copy of GPU MODE's first CUDA lecture. See the original
+[CUDA MODE lectures repository](https://github.com/gpu-mode/lectures) and its
+[Lecture 001 materials](https://github.com/gpu-mode/lectures/tree/main/lecture_001),
+including the upstream slides. The scripts introduce PyTorch operations and
+profiling, PyTorch inline C++/CUDA extensions, Triton, and Numba. Their source
+and license are recorded in [UPSTREAM.md](UPSTREAM.md).
 
 ## Prerequisites
 
