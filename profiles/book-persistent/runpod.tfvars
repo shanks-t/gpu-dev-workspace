@@ -8,4 +8,5 @@ cloud_type           = "COMMUNITY"
 interruptible        = false
 image_name           = "ghcr.io/shanks-t/gpu-dev-workspace:0.1.0"
 container_disk_in_gb = 40
+validation_mode      = "performance-full"
 volume_in_gb         = 50

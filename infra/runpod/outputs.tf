@@ -32,3 +32,8 @@ output "template_id" {
   description = "Terraform-managed private RunPod template identifier."
   value       = runpod_template.lab.id
 }
+
+output "validation_mode" {
+  description = "GPU readiness check selected by the workload profile."
+  value       = var.validation_mode
+}

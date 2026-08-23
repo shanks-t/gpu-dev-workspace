@@ -17,7 +17,7 @@ printf '%s\n' "$*" >>"$GPU_TEST_TF_LOG"
 case " $* " in
   *" output -json "*)
     if [ -f "$GPU_TEST_TF_STATE" ]; then
-      printf '%s\n' '{"pod_id":{"value":"pod-test","type":"string"}}'
+      printf '%s\n' '{"pod_id":{"value":"pod-test","type":"string"},"validation_mode":{"value":"cuda","type":"string"}}'
     else
       printf '%s\n' '{}'
     fi

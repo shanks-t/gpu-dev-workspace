@@ -16,6 +16,20 @@ variable "container_disk_in_gb" {
   }
 }
 
+variable "validation_mode" {
+  description = "Profile-specific GPU readiness check run by the CLI after SSH is available."
+  type        = string
+  validation {
+    condition = contains([
+      "cuda",
+      "pytorch",
+      "nvidia-performance",
+      "performance-full",
+    ], var.validation_mode)
+    error_message = "validation_mode must be cuda, pytorch, nvidia-performance, or performance-full."
+  }
+}
+
 variable "container_registry_auth_id" {
   description = "Optional RunPod container registry credential ID required when the GHCR image is private."
   type        = string
@@ -42,10 +56,10 @@ variable "image_name" {
   type        = string
   validation {
     condition = can(regex(
-      "^ghcr\\.io/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+:(?:[0-9]+\\.[0-9]+\\.[0-9]+|sha-[0-9a-f]{40})$|^ghcr\\.io/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@sha256:[0-9a-f]{64}$",
+      "^(?:ghcr\\.io/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+:(?:[0-9]+\\.[0-9]+\\.[0-9]+|sha-[0-9a-f]{40})|ghcr\\.io/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@sha256:[0-9a-f]{64}|runpod/[A-Za-z0-9_.-]+@sha256:[0-9a-f]{64})$",
       var.image_name,
     ))
-    error_message = "image_name must be a GHCR semantic-version tag, full sha-<commit> tag, or sha256 digest; latest and floating tags are forbidden."
+    error_message = "image_name must be an approved GHCR immutable reference or digest-pinned official RunPod image; latest and floating tags are forbidden."
   }
 }
 

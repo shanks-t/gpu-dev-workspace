@@ -281,6 +281,39 @@ ssh_exec() {
   exec ssh "$(ssh_alias)" "$@"
 }
 
+validate_runpod_image() {
+  alias=$1
+  mode=$(tf_output validation_mode)
+  case "$mode" in
+    cuda)
+      ssh "$alias" 'set -eu
+        for tool in nvidia-smi nvcc c++; do command -v "$tool" >/dev/null; done
+        printf "%s\n" \
+          "#include <cuda_runtime.h>" \
+          "#include <cstdio>" \
+          "int main() { int count = 0; if (cudaGetDeviceCount(&count) != cudaSuccess || count < 1) return 1; std::printf(\"CUDA devices: %d\\n\", count); }" \
+          > /tmp/gpu-basics-smoke.cu
+        nvcc /tmp/gpu-basics-smoke.cu -o /tmp/gpu-basics-smoke
+        /tmp/gpu-basics-smoke
+        rm -f /tmp/gpu-basics-smoke /tmp/gpu-basics-smoke.cu'
+      ;;
+    pytorch)
+      ssh "$alias" 'set -eu
+        command -v nvidia-smi >/dev/null
+        python -c "import numpy, torch; assert torch.cuda.is_available(); value = (torch.ones(1024, device=\"cuda\") * 2).sum().item(); assert value == 2048; print(f\"PyTorch {torch.__version__}; CUDA tensor passed\")"'
+      ;;
+    nvidia-performance)
+      ssh "$alias" 'set -eu
+        for tool in nvidia-smi nvcc ncu nsys python; do command -v "$tool" >/dev/null; done
+        ncu --version | tail -n 1
+        nsys --version | tail -n 1
+        python -c "import torch; assert torch.cuda.is_available(); print(f\"PyTorch {torch.__version__}; CUDA available\")"'
+      ;;
+    performance-full) ssh "$alias" gpu-image-smoke-test --gpu ;;
+    *) fail "unsupported RunPod validation mode: $mode" ;;
+  esac
+}
+
 up() {
   [ "$#" -le 1 ] || usage
   profile=${1:-$default_profile}
@@ -320,7 +353,7 @@ up() {
   write_ssh_alias "$host" "$port"
   alias=$(ssh_alias)
   case "$provider" in
-    runpod) ssh "$alias" gpu-image-smoke-test --gpu ;;
+    runpod) validate_runpod_image "$alias" ;;
     gcp)
       ssh "$alias" \
         'set -eu
