@@ -33,8 +33,8 @@ variable "validation_mode" {
 variable "container_registry_auth_id" {
   description = "Optional RunPod container registry credential ID required when the GHCR image is private."
   type        = string
-  default     = null
-  nullable    = true
+  default     = ""
+  nullable    = false
 }
 
 variable "gpu_count" {

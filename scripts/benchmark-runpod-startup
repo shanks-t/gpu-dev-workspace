@@ -19,7 +19,7 @@ mkdir -p "$results"
 active_log=
 
 cleanup_active() {
-  if terraform -chdir="$root/infra/runpod" output -raw pod_id >/dev/null 2>&1; then
+  if terraform -chdir="$root/infra/runpod" state list 2>/dev/null | grep -q .; then
     "$root/gpu" down >>"${active_log:-$results/cleanup.log}" 2>&1 || true
   fi
 }
