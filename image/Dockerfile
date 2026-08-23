@@ -10,8 +10,7 @@ LABEL org.opencontainers.image.title="GPU Development Workspace" \
       org.opencontainers.image.description="Pinned CUDA, PyTorch, Triton, and Nsight toolchain for GPU performance development" \
       org.opencontainers.image.source="https://github.com/shanks-t/gpu-dev-workspace" \
       org.opencontainers.image.version="$IMAGE_VERSION" \
-      org.opencontainers.image.revision="$IMAGE_REVISION" \
-      org.opencontainers.image.licenses="MIT"
+      org.opencontainers.image.revision="$IMAGE_REVISION"
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
