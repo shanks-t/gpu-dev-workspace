@@ -2,6 +2,8 @@
 
 - [ ] Make the default fundamentals workspace use the fastest validated provider image, and reserve project-owned images for workloads that require additional pinned tools.
 
+The initial benchmark is documented in [STARTUP_BENCHMARK_RESULTS.md](STARTUP_BENCHMARK_RESULTS.md). It exposed separate SSH/GPU readiness milestones and substantial host-to-host variability; a direct official-template comparison remains before changing the default.
+
 ## Decision
 
 Do not require a project-owned image for basic native CUDA or PyTorch exercises when a provider-maintained image already supplies the required toolchain and secure SSH startup.
