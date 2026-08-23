@@ -12,7 +12,7 @@ RunPod defaults to a non-interruptible Community RTX 3090 with CUDA 13.0 and PyT
 
 See [GPU_TYPES.md](GPU_TYPES.md) for the current target GPUs, live price snapshots, selection guidance, and source links.
 
-See [DEVELOPMENT_WORKFLOWS.md](DEVELOPMENT_WORKFLOWS.md) for remote-first and local-first iterative development loops. Planned image and template improvements are tracked in [task.md](task.md).
+See [DEVELOPMENT_WORKFLOWS.md](DEVELOPMENT_WORKFLOWS.md) for remote-first and local-first iterative development loops. Plans for the custom development image and the Mutagen local-first proof are tracked in [task.md](task.md).
 
 ## Local prerequisites
 
