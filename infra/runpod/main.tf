@@ -11,10 +11,14 @@ resource "runpod_template" "lab" {
   ports                      = ["22/tcp"]
 
   env = {
-    HF_HOME          = "/workspace/.cache/huggingface"
-    TORCH_HOME       = "/workspace/.cache/torch"
-    TRITON_CACHE_DIR = "/workspace/.cache/triton"
-    XDG_CACHE_HOME   = "/workspace/.cache"
+    HF_HOME                 = "/workspace/.cache/huggingface"
+    TORCH_HOME              = "/workspace/.cache/torch"
+    TORCH_EXTENSIONS_DIR    = "/workspace/.cache/torch_extensions"
+    TORCHINDUCTOR_CACHE_DIR = "/workspace/.cache/torchinductor"
+    TRITON_CACHE_DIR        = "/workspace/.cache/triton"
+    NUMBA_CACHE_DIR         = "/workspace/.cache/numba"
+    MPLCONFIGDIR            = "/workspace/.cache/matplotlib"
+    XDG_CACHE_HOME          = "/workspace/.cache"
   }
 
   readme = "Private development template managed by Terraform. Hardware and persistence are selected by workload profiles."

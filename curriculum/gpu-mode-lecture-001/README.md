@@ -30,6 +30,11 @@ stop compute without discarding JIT build caches or profiler artifacts:
 ./gpu status
 ```
 
+The profile persists PyTorch extension, TorchInductor, Triton, Numba, and
+Matplotlib caches below `/workspace/.cache`. This does not make the first Pod
+allocation faster, but it avoids repeating local compilation and cache setup
+after `down` and `up` on the retained workspace.
+
 When the exercise is complete, permanently delete the Pod and its retained
 volume:
 
