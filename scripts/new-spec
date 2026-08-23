@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  echo "Usage: $0 <short-kebab-case-name> <title>" >&2
+  exit 2
+}
+
+name=${1:-}
+title=${2:-}
+
+if [[ -z "$name" || -z "$title" ]]; then
+  usage
+fi
+
+if [[ ! "$name" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+  echo "Spec name must be short kebab case (for example: remote-log-collection)." >&2
+  exit 2
+fi
+
+if [[ "$title" == *$'\n'* ]]; then
+  echo "Spec title must be a single line." >&2
+  exit 2
+fi
+
+repo_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
+date_prefix=$(date +%F)
+spec_dir="$repo_root/specs/$date_prefix-$name"
+
+if [[ -e "$spec_dir" ]]; then
+  echo "Spec workspace already exists: $spec_dir" >&2
+  exit 1
+fi
+
+mkdir -p "$spec_dir"
+safe_title=$(printf '%s' "$title" | sed 's/[&|\\]/\\&/g')
+for artifact in spec.md tasks.md; do
+  sed -e "s|{{DATE}}|$date_prefix|g" -e "s|{{TITLE}}|$safe_title|g" \
+    "$repo_root/specs/templates/$artifact" > "$spec_dir/$artifact"
+done
+
+echo "Created $spec_dir"
+echo "Next: fill in spec.md and tasks.md, then run:"
+echo "  make spec-check path=specs/$date_prefix-$name"

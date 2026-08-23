@@ -2,6 +2,21 @@
 
 Use conventional commits with brief bullet points.
 
+## Lightweight spec workflow
+
+For a change that needs coordination or has more than a trivial implementation:
+
+1. Discuss the request and inspect the relevant repository context.
+2. Create a dated local workspace with `make spec name=<short-kebab-case-name> title="<title>"`.
+3. Turn the discussion into `specs/YYYY-MM-DD-<name>/spec.md`, then create its matching `tasks.md`.
+4. Run `make spec-check path=specs/YYYY-MM-DD-<name>` before implementation.
+
+Keep `spec.md` at **100 lines or fewer**. If that cannot describe the work clearly, split the change into separate specs. State the desired outcome, constraints, acceptance checks, and validation; do not use it as an implementation diary.
+
+Write `tasks.md` in dependency order. Every task must be independently actionable and have a concrete `Validate:` step. Implement from the task list and check off a task only after its validation passes.
+
+The `specs/` workspaces are intentionally ignored because they are local planning context. Never force-add generated spec directories; only the workflow guidance and templates are versioned.
+
 ## Purpose and curriculum
 
 This repository is a GPU development workspace for working through our own AI

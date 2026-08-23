@@ -1,4 +1,4 @@
-.PHONY: check image image-smoke lint test
+.PHONY: check image image-smoke lint spec spec-check test
 
 check:
 	@./gpu check
@@ -15,3 +15,9 @@ lint:
 
 test:
 	@tests/gpu_alias_test.sh
+
+spec:
+	@scripts/new-spec "$(name)" "$(title)"
+
+spec-check:
+	@scripts/check-spec "$(path)"

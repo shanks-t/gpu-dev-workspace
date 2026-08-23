@@ -1,4 +1,11 @@
 .DS_Store
+
+# Local, dated planning artifacts. Keep the workflow and templates versioned.
+specs/*
+!specs/README.md
+!specs/templates/
+!specs/templates/spec.md
+!specs/templates/tasks.md
 __pycache__/
 *.pyc
 .gpu/

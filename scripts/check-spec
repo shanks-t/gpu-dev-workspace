@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  echo "Usage: $0 <spec-directory>" >&2
+  exit 2
+}
+
+spec_dir=${1:-}
+if [[ -z "$spec_dir" ]]; then
+  usage
+fi
+
+if [[ ! -d "$spec_dir" ]]; then
+  echo "Spec directory does not exist: $spec_dir" >&2
+  exit 1
+fi
+
+spec_file="$spec_dir/spec.md"
+tasks_file="$spec_dir/tasks.md"
+status=0
+
+for file in "$spec_file" "$tasks_file"; do
+  if [[ ! -f "$file" ]]; then
+    echo "Missing required artifact: $file" >&2
+    status=1
+  fi
+done
+
+if [[ $status -ne 0 ]]; then
+  exit "$status"
+fi
+
+spec_lines=$(wc -l < "$spec_file" | tr -d ' ')
+if (( spec_lines > 100 )); then
+  echo "spec.md has $spec_lines lines; split the work instead of exceeding 100 lines." >&2
+  status=1
+fi
+
+for heading in '## Goal' '## Constraints' '## Acceptance checks' '## Validation'; do
+  if ! grep -Fqx "$heading" "$spec_file"; then
+    echo "spec.md is missing required section: $heading" >&2
+    status=1
+  fi
+done
+
+if grep -q '<!--' "$spec_file" "$tasks_file"; then
+  echo "Replace the template guidance comments before validating the spec." >&2
+  status=1
+fi
+
+if ! grep -Eq '^- \[.\] ' "$tasks_file"; then
+  echo "tasks.md must contain at least one checklist task." >&2
+  status=1
+fi
+
+if ! awk '
+  /^- \[[ xX]\] / { if (task && !validated) exit 1; task=1; validated=0; next }
+  /^  - Validate: .+/ { if (task) validated=1 }
+  END { if (task && !validated) exit 1 }
+' "$tasks_file"; then
+  echo "Every checklist task in tasks.md needs an indented, non-empty Validate: line." >&2
+  status=1
+fi
+
+if [[ $status -eq 0 ]]; then
+  echo "Spec is ready: $spec_dir ($spec_lines/100 lines)"
+fi
+
+exit "$status"
