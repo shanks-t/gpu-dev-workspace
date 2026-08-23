@@ -4,6 +4,8 @@
 
 - [ ] Replace the generic RunPod image with a versioned development image and Terraform-managed Pod template.
 
+Implementation is complete locally. Publishing `0.1.0`, applying the template, running the live GPU smoke test, and recording cold/warm measurements remain before this task can be checked off.
+
 ### Why
 
 The first live test provisioned a Pod quickly, but the selected image did not contain the complete performance toolchain. PyTorch and Triton could use the GPU, while `nvcc`, NumPy, and Nsight Systems were missing; the existing check did not independently establish whether Nsight Compute was usable. Installing tools after every ephemeral launch would be slow, inconsistent, and difficult to reproduce.

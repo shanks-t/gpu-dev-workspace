@@ -8,11 +8,11 @@ GPU_PROVIDER=runpod ./gpu zed
 GPU_PROVIDER=runpod ./gpu down
 ```
 
-RunPod defaults to a non-interruptible Community RTX 3090 with CUDA 13.0 and PyTorch 2.9.1. This is the cheapest current target that supports the architecture-neutral single-GPU exercises. GCP defaults to a Spot `n1-standard-4` plus one T4 with a managed CUDA 12.9/PyTorch 2.9 image because G2/L4 machines cannot boot Deep Learning VM images.
+RunPod defaults to a non-interruptible Community RTX 3090 with the project-owned CUDA 13.0/PyTorch 2.9.1 development image. This is the cheapest current target that supports the architecture-neutral single-GPU exercises. GCP defaults to a Spot `n1-standard-4` plus one T4 with a managed CUDA 12.9/PyTorch 2.9 image because G2/L4 machines cannot boot Deep Learning VM images.
 
 See [GPU_TYPES.md](GPU_TYPES.md) for the current target GPUs, live price snapshots, selection guidance, and source links.
 
-See [DEVELOPMENT_WORKFLOWS.md](DEVELOPMENT_WORKFLOWS.md) for remote-first and local-first iterative development loops. Plans for the custom development image and the Mutagen local-first proof are tracked in [task.md](task.md).
+See [IMAGE.md](IMAGE.md) for the image build, publication, validation, and startup-measurement workflow. See [DEVELOPMENT_WORKFLOWS.md](DEVELOPMENT_WORKFLOWS.md) for remote-first and local-first iterative development loops. Remaining work is tracked in [task.md](task.md).
 
 ## Local prerequisites
 
@@ -20,7 +20,7 @@ See [DEVELOPMENT_WORKFLOWS.md](DEVELOPMENT_WORKFLOWS.md) for remote-first and lo
 - Zed with its CLI installed (`Cmd+Shift+P`, then `cli: install`)
 - OpenSSH, `curl`, and `jq`
 - ShellCheck (`brew install shellcheck`)
-- An Ed25519 SSH key at `~/.ssh/id_ed25519`, or set `RUNPOD_SSH_KEY` / `GCP_SSH_KEY`
+- A RunPod Ed25519 SSH key at `~/.ssh/gpu_dev_ed25519`; GCP defaults to `~/.ssh/id_ed25519`. Either can be overridden with `RUNPOD_SSH_KEY` / `GCP_SSH_KEY`.
 
 Run the local proof before spending money:
 
@@ -49,7 +49,7 @@ make lint
 
    RunPod commands retrieve it automatically without exposing it in shell history or exporting it in your parent terminal. An explicitly set `RUNPOD_API_KEY` takes precedence.
 
-3. Add the contents of `~/.ssh/id_ed25519.pub` in **Settings > SSH Public Keys**.
+3. Add the contents of `~/.ssh/gpu_dev_ed25519.pub` in **Settings > SSH Public Keys**.
 4. Copy and edit the provider inputs:
 
    ```sh
@@ -130,7 +130,7 @@ The same profile name exists for each provider, while its concrete machine confi
 
 ## Working remotely
 
-`gpu up` waits for full SSH, creates the `gpu-runpod` or `gpu-gcp` SSH alias, and checks `nvidia-smi`, `nvcc`, Nsight Compute, PyTorch, Triton, and CUDA availability before seeding this committed repo into `/workspace/gpu-dev-workspace`. Nsight Systems is reported separately because it may require the future custom image. The seed creates a remote Git repository without copying local credentials or Terraform state. Push valuable work to Git before `down` in ephemeral mode.
+`gpu up` waits for full SSH, creates the `gpu-runpod` or `gpu-gcp` SSH alias, and runs the image's complete CUDA, Nsight, NumPy, PyTorch, and Triton smoke test before seeding this committed repo into `/workspace/gpu-dev-workspace`. The seed creates a remote Git repository without copying local credentials or Terraform state. Push valuable work to Git before `down` in ephemeral mode.
 
 The CLI keeps generated aliases in `~/.ssh/config.d/gpu-workspace-*`. On first use it prepends one `Include` line to `~/.ssh/config` and saves the original as `~/.ssh/config.gpu-workspace.bak`. Existing aliases remain untouched. RunPod connection addresses can change after a stop, so `gpu up`, `gpu ssh`, and `gpu zed` refresh the alias before connecting.
 
@@ -155,6 +155,5 @@ Terraform derives `down_action` from the profile's persistence setting: `book-ep
 ## Deliberately deferred
 
 - Vast.ai: add it after RunPod and GCP complete the CUDA smoke test.
-- Custom Docker image: next infrastructure layer if first-launch validation confirms Nsight Systems or other book dependencies are missing.
 - Additional workload profiles: add them only when an exercise needs different hardware or software.
 - Shared Terraform modules: provider lifecycle and storage semantics are different enough that duplication is safer and smaller.

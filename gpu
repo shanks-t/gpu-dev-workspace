@@ -10,6 +10,7 @@ ssh_dir=$HOME/.ssh
 ssh_config=$ssh_dir/config
 ssh_config_dir=$ssh_dir/config.d
 ssh_include='Include ~/.ssh/config.d/gpu-workspace-*'
+startup_file=$root/.gpu/startup-$provider.json
 
 usage() {
   cat >&2 <<'EOF'
@@ -117,7 +118,7 @@ ssh_user() {
 
 ssh_key() {
   case "$provider" in
-    runpod) echo "${RUNPOD_SSH_KEY:-$HOME/.ssh/id_ed25519}" ;;
+    runpod) echo "${RUNPOD_SSH_KEY:-$HOME/.ssh/gpu_dev_ed25519}" ;;
     gcp) echo "${GCP_SSH_KEY:-$HOME/.ssh/id_ed25519}" ;;
   esac
 }
@@ -168,6 +169,8 @@ write_ssh_alias() {
     printf '    IdentityFile "%s"\n' "$key"
     printf '%s\n' \
       '    IdentitiesOnly yes' \
+      '    PasswordAuthentication no' \
+      '    KbdInteractiveAuthentication no' \
       '    AddKeysToAgent yes' \
       '    UseKeychain yes' \
       '    ForwardAgent no' \
@@ -193,13 +196,19 @@ refresh_ssh_alias() {
 
 wait_for_ssh() {
   i=0
+  endpoint_ready_at=
   while [ "$i" -lt 120 ]; do
     if address=$(endpoint 2>/dev/null); then
+      if [ -z "$endpoint_ready_at" ]; then
+        endpoint_ready_at=$(date +%s)
+      fi
       host=${address%%	*}
       port=${address#*	}
-      if ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new \
+      if ssh -o BatchMode=yes -o ConnectTimeout=5 -o IdentitiesOnly=yes \
+        -o PasswordAuthentication=no -o KbdInteractiveAuthentication=no \
+        -o StrictHostKeyChecking=accept-new \
         -i "$(ssh_key)" -p "$port" "$(ssh_user)@$host" true 2>/dev/null; then
-        printf '%s\t%s\n' "$host" "$port"
+        printf '%s\t%s\t%s\t%s\n' "$host" "$port" "$endpoint_ready_at" "$(date +%s)"
         return
       fi
     fi
@@ -207,6 +216,64 @@ wait_for_ssh() {
     sleep 5
   done
   fail "SSH was not ready after 10 minutes"
+}
+
+record_startup_timings() {
+  started_at=$1
+  terraform_ready_at=$2
+  endpoint_ready_at=$3
+  ssh_ready_at=$4
+  image_ready_at=$5
+  workspace_ready_at=$6
+  image_name=$(tf_output image_name 2>/dev/null || true)
+  resource_id=$(tf_output pod_id 2>/dev/null || tf_output instance_name 2>/dev/null || true)
+  mkdir -p "$root/.gpu"
+  temporary=$(mktemp "$root/.gpu/.startup-$provider.XXXXXX")
+  jq -n \
+    --arg provider "$provider" \
+    --arg profile "$profile" \
+    --arg resourceId "$resource_id" \
+    --arg image "$image_name" \
+    --argjson started "$started_at" \
+    --argjson terraform "$terraform_ready_at" \
+    --argjson endpoint "$endpoint_ready_at" \
+    --argjson ssh "$ssh_ready_at" \
+    --argjson imageReady "$image_ready_at" \
+    --argjson workspace "$workspace_ready_at" \
+    '{
+      provider: $provider,
+      profile: $profile,
+      resource_id: $resourceId,
+      image: $image,
+      milestones_unix: {
+        started: $started,
+        terraform_ready: $terraform,
+        endpoint_ready: $endpoint,
+        ssh_ready: $ssh,
+        image_ready: $imageReady,
+        workspace_ready: $workspace
+      },
+      elapsed_seconds: {
+        terraform: ($terraform - $started),
+        endpoint: ($endpoint - $started),
+        ssh: ($ssh - $started),
+        image: ($imageReady - $started),
+        workspace: ($workspace - $started)
+      }
+    }' >"$temporary"
+  mv "$temporary" "$startup_file"
+  echo "gpu: startup timings written to $startup_file"
+}
+
+record_zed_launch() {
+  [ -f "$startup_file" ] || return 0
+  launched_at=$(date +%s)
+  temporary=$(mktemp "$root/.gpu/.startup-$provider.XXXXXX")
+  jq --argjson launched "$launched_at" \
+    '.milestones_unix.zed_launched = $launched |
+     .elapsed_seconds.zed_launch = ($launched - .milestones_unix.started)' \
+    "$startup_file" >"$temporary"
+  mv "$temporary" "$startup_file"
 }
 
 ssh_exec() {
@@ -221,6 +288,7 @@ up() {
   need curl
   need jq
   need ssh
+  started_at=$(date +%s)
   profile_file=$(profile_path "$profile")
   tf init -input=false
   validate_profile "$profile"
@@ -237,23 +305,32 @@ up() {
     gcp) tf apply -auto-approve -var=desired_status=RUNNING -var-file="$profile_file" ;;
     *) fail "unsupported provider: $provider" ;;
   esac
+  terraform_ready_at=$(date +%s)
 
   address=$(wait_for_ssh)
-  host=${address%%	*}
-  port=${address#*	}
+  previous_ifs=$IFS
+  IFS='	'
+  # shellcheck disable=SC2086
+  set -- $address
+  IFS=$previous_ifs
+  host=$1
+  port=$2
+  endpoint_ready_at=$3
+  ssh_ready_at=$4
   write_ssh_alias "$host" "$port"
   alias=$(ssh_alias)
-  ssh "$alias" \
-    'set -eu
-    command -v nvidia-smi nvcc ncu python3 >/dev/null
-    nvidia-smi --query-gpu=name,driver_version --format=csv,noheader
-    nvcc --version | tail -n 1
-    python3 -c "import torch, triton; assert torch.cuda.is_available(); print(f\"PyTorch {torch.__version__}; Triton {triton.__version__}\")"
-    if command -v nsys >/dev/null 2>&1; then
-      nsys --version | head -n 1
-    else
-      echo "gpu: warning: Nsight Systems (nsys) is missing; deep profiling needs the custom image" >&2
-    fi'
+  case "$provider" in
+    runpod) ssh "$alias" gpu-image-smoke-test --gpu ;;
+    gcp)
+      ssh "$alias" \
+        'set -eu
+        for tool in nvidia-smi nvcc ncu python3; do command -v "$tool" >/dev/null; done
+        nvidia-smi --query-gpu=name,driver_version --format=csv,noheader
+        nvcc --version | tail -n 1
+        python3 -c "import torch, triton; assert torch.cuda.is_available(); print(f\"PyTorch {torch.__version__}; Triton {triton.__version__}\")"'
+      ;;
+  esac
+  image_ready_at=$(date +%s)
 
   # remote_path is intentionally expanded locally and quoted for the remote shell.
   # shellcheck disable=SC2029
@@ -264,6 +341,9 @@ up() {
     git -C "$root" archive HEAD | ssh "$alias" \
       "tar -x -C '$remote_path' && cd '$remote_path' && git init -q && git add . && git -c user.name='GPU Workspace' -c user.email='gpu-workspace@localhost' commit -qm 'chore: seed workspace'"
   fi
+  workspace_ready_at=$(date +%s)
+  record_startup_timings "$started_at" "$terraform_ready_at" "$endpoint_ready_at" \
+    "$ssh_ready_at" "$image_ready_at" "$workspace_ready_at"
   echo "gpu: ready ($provider, profile=$profile); run './gpu zed'"
 }
 
@@ -305,7 +385,8 @@ check() {
   need curl
   need jq
   need shellcheck
-  shellcheck "$root/gpu" "$root"/scripts/* "$root"/tests/*.sh
+  shellcheck "$root/gpu" "$root"/image/start-gpu-workspace "$root"/image/smoke-test \
+    "$root"/scripts/* "$root"/tests/*.sh
   for test_script in "$root"/tests/*.sh; do
     "$test_script"
   done
@@ -342,6 +423,7 @@ case "$command" in
   zed)
     need zed
     refresh_ssh_alias
+    record_zed_launch
     exec zed "ssh://$(ssh_alias)$remote_path"
     ;;
   check) check ;;
