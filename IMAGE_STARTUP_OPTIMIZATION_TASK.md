@@ -6,15 +6,16 @@ The initial benchmark is documented in [STARTUP_BENCHMARK_RESULTS.md](STARTUP_BE
 
 ## Decision
 
-Do not require a project-owned image for basic native CUDA or PyTorch exercises when a provider-maintained image already supplies the required toolchain and secure SSH startup.
+Do not choose the default from image size or registry ownership. Choose it from repeatable time-to-usable-GPU measurements after each candidate passes the same workload checks.
 
-Use three declarative workload classes:
+The next comparison has only two candidates:
 
-1. `basics-cuda` uses an official RunPod CUDA development image, pinned by digest. It needs SSH, Git, Python, `nvidia-smi`, `nvcc`, a C++ compiler, CMake, and Ninja. It does not need PyTorch, Triton, or Nsight by default.
-2. `basics-pytorch` uses an official RunPod PyTorch image, pinned by digest. It needs SSH, Python, NumPy, PyTorch, and a working CUDA tensor operation. It does not need `nvcc`, Triton, or Nsight unless the selected exercise requires them.
-3. `performance-full` uses the project-owned image with native CUDA, PyTorch, Triton, Nsight Compute, and Nsight Systems.
+1. `official-fundamentals` uses RunPod's official `runpod-torch-v280` template, including its 30 GB container disk and 50 GB `/workspace` volume.
+2. `performance-full` uses the project-owned image with native CUDA, PyTorch, Triton, Nsight Compute, and Nsight Systems.
 
-Keep the CLI configuration-free: `./gpu up` selects `basics-cuda`, while `./gpu up basics-pytorch` and `./gpu up performance-full` select the other declarative profiles.
+A retained volume is now allowed for the default workflow. If the official template wins, `./gpu down` must stop compute and clearly report continuing storage charges; `./gpu cleanup` must permanently remove the Pod and retained storage.
+
+Keep the CLI configuration-free. Do not change what bare `./gpu up` selects until the two candidates complete equivalent validation and timing trials.
 
 ## Why
 
@@ -29,7 +30,9 @@ The current project-owned image is 13.75 GB unpacked. Its largest installed comp
 | Nsight Systems | 1.1 GB | Profiling only |
 | Triton | 594 MB | Triton exercises only |
 
-RunPod's official `runpod/base` CUDA variants already use NVIDIA CUDA cuDNN development images and provide OpenSSH, `/start.sh`, build tools, Git, CMake, Python, and workspace-aware caches. An official image is also more likely to have reusable layers on RunPod hosts than a private project image, although host placement and cache residency are not guaranteed.
+The initial benchmark showed that a RunPod-owned image can become SSH-ready quickly but is not consistently fast across Community hosts. One official PyTorch trial reached SSH in about 24 seconds, while a smaller RunPod CUDA-base trial on another host never received an endpoint within ten minutes. Host placement, cache state, and GPU initialization matter more than image size alone.
+
+RunPod's official PyTorch 2.8 template is the best remaining fast-path candidate because it tests RunPod's complete maintained template rather than a user-managed template that merely references a RunPod image. The project image remains the reproducible full-toolchain candidate.
 
 References:
 
@@ -38,73 +41,68 @@ References:
 - [RunPod Pod templates](https://docs.runpod.io/pods/templates/overview)
 - [RunPod image caching and immutable-tag guidance](https://docs.runpod.io/tutorials/introduction/containers/docker-commands)
 
-## Fast-path design
+## Completed work
 
-### `basics-cuda` default
+- [x] Measure initial digest-pinned RunPod base, PyTorch, and NVIDIA-PyTorch candidates.
+- [x] Record the results and confirm that all Pods, templates, and Terraform resources were removed.
+- [x] Add profile-specific validation instead of requiring the project image's smoke-test command everywhere.
+- [x] Separate endpoint, SSH, and usable-GPU readiness; retry `nvidia-smi -L` after SSH succeeds.
+- [x] Add a teardown-safe harness that destroys Pod-plus-template and template-only partial applies.
+- [x] Add immutable candidate profiles without changing the current CLI default.
 
-- Select a stable official `runpod/base` CUDA development release after validating it on the target Ampere and Blackwell GPUs.
-- Resolve and commit its immutable `linux/amd64` digest instead of using `latest` or a release-candidate tag directly.
-- Use the smallest validated ephemeral container disk; begin testing at 20 GB and increase only if image extraction or compilation requires it.
-- Keep persistent volume size at zero.
-- Preserve only port `22/tcp` unless an exercise explicitly needs Jupyter or an HTTP service.
-- Use the RunPod image's existing `/start.sh` SSH behavior rather than replacing its entrypoint.
-- Validate `nvidia-smi`, `nvcc --version`, compilation, and execution of the tracked CUDA hello program.
+## Recommended next steps
 
-Expected workflow:
+1. [ ] Add an `official-fundamentals` profile that references existing template ID `runpod-torch-v280` instead of creating a user-managed RunPod template.
+2. [ ] Model the official template's 50 GB `/workspace` volume declaratively and verify exactly which resource Terraform owns.
+3. [ ] Update lifecycle behavior for a retained-volume default:
+   - `gpu down` stops compute and preserves the workspace.
+   - `gpu status` reports compute state, persistent-storage state, and continuing storage cost.
+   - `gpu cleanup` requires confirmation and permanently deletes compute and retained storage.
+4. [ ] Create a read-only GHCR package credential, register it with RunPod, and store only its RunPod registry-authentication ID in ignored local Terraform configuration.
+5. [ ] Confirm RunPod can pull the immutable `performance-full` image without granting package-write access.
+6. [ ] Move mutable OCI version and revision labels after the project image's large dependency layers to preserve layer reuse across source-only commits.
+7. [ ] Run one qualifying trial per candidate before repeating anything. A qualifying trial must pass every readiness and workload check below.
+8. [ ] Run one additional trial per qualifying candidate using the same RTX 3090 Community configuration.
+9. [ ] Compare complete time-to-ready results and choose the bare `./gpu up` default.
+10. [ ] Document which exercises use the selected fundamentals profile and which require `performance-full`.
 
-```text
-./gpu up
-  -> Terraform selects the basics-cuda profile
-  -> RunPod starts its official digest-pinned CUDA image
-  -> CLI waits for SSH and runs the native CUDA smoke test
-  -> workspace is ready for Zed, SSH, or gpu run
-```
+Do not run a larger cold/warm matrix until both candidates pass once. Failed or unequal smoke tests are not comparable benchmarks.
 
-### `basics-pytorch`
+## Required validation
 
-- Select a stable official `runpod/pytorch` image and pin its digest.
-- Validate Python, NumPy, PyTorch, `torch.cuda.is_available()`, and a small CUDA tensor operation.
-- Do not install PyTorch again in a derived image.
-- Do not include model weights or datasets in the image.
+Both candidates must pass the same fundamentals boundary:
 
-### `performance-full`
+- Key-only SSH through the generated `gpu-runpod` alias.
+- Successful `nvidia-smi` execution, not merely command presence.
+- `nvcc` compilation and execution of the tracked native CUDA example.
+- NumPy and PyTorch imports.
+- A PyTorch CUDA tensor operation.
+- `ncu` and `nsys` command/version probes, with missing profilers recorded as an explicit capability difference rather than a silent failure.
+- Repository workspace access through SSH and Zed Remote Development.
 
-- Retain the current project image for profiling and cross-stack exercises.
-- Move changing OCI version and revision labels after large dependency layers so a source-only commit does not invalidate reusable installation layers.
-- Consider separate `native-profiling` and `pytorch-triton-profiling` targets only if measurements show that the full profile is too slow.
+`performance-full` must additionally pass Triton and the existing complete image smoke test.
 
-## Implementation plan
+## Benchmark protocol
 
-1. Add `basics-cuda`, `basics-pytorch`, and `performance-full` profile directories with provider-specific Terraform variable files.
-2. Make `basics-cuda` the CLI default without adding image, disk, or tool configuration to the script.
-3. Generalize RunPod validation so each profile can declare an appropriate container disk instead of enforcing the current global 40 GB minimum.
-4. Permit approved public provider images only when pinned by digest; continue rejecting `latest` and other floating references.
-5. Make readiness tests workload-aware:
-   - `basics-cuda`: SSH, GPU visibility, compile, execute.
-   - `basics-pytorch`: SSH, GPU visibility, import, CUDA tensor operation.
-   - `performance-full`: existing complete image smoke test.
-6. Verify that the official images accept the registered RunPod SSH key and work with the generated `gpu-runpod` alias and Zed Remote Development.
-7. Move mutable OCI labels to the final layer of the project Dockerfile and confirm unchanged dependency layers retain their digests between source-only commits.
-8. Document which exercises require each profile and provide a clear error when a command requires a tool absent from the selected profile.
+Record these milestones for each trial:
 
-## Startup benchmark
+1. Terraform start and resource creation.
+2. Endpoint assignment.
+3. First successful SSH command.
+4. First successful `nvidia-smi -L` command.
+5. Completion of native CUDA and PyTorch smoke tests.
+6. Workspace seed or synchronization completion.
+7. Zed remote-workspace launch readiness.
 
-For every candidate, record at least three cold attempts and three likely warm attempts using the same GPU type and cloud tier:
+Also record image/template identity, GPU host, datacenter, compute price, retained-volume configuration, and teardown result. Treat complete GPU-and-workspace readiness as the primary metric. SSH-ready time and image size are diagnostic evidence only.
 
-- Terraform apply start and completion.
-- Endpoint assignment.
-- First successful SSH command.
-- Completion of the profile-specific GPU smoke test.
-- Zed remote workspace readiness.
-- Image reference and digest, GPU host, datacenter, and whether the attempt appeared cached.
+## Default-selection rules
 
-Compare:
-
-1. Official RunPod CUDA base pinned by digest.
-2. Official RunPod PyTorch image pinned by digest.
-3. Project-owned `performance-full` image pinned by digest.
-
-Treat measured SSH-ready time as the primary result. Image size is explanatory evidence, not the success metric, because host cache state and placement can dominate startup.
+- Select `official-fundamentals` if it passes the required tool boundary and has meaningfully better or comparable complete readiness time.
+- Select `performance-full` if the official template is missing tools needed by early exercises or its apparent startup advantage is not repeatable.
+- Keep `performance-full` as an explicit advanced profile even if the official template becomes the default.
+- Consider a thin project image derived from the official RunPod image only if it can add missing tools while preserving a measured startup advantage.
+- Never select a profile because one unusually favorable host was fast.
 
 ## When we should own an image
 
@@ -120,18 +118,17 @@ Do not create a custom image merely to add source code, datasets, aliases, or wo
 
 ## Acceptance criteria
 
-- `./gpu up` provisions the digest-pinned `basics-cuda` profile with no persistent volume.
-- The default workspace accepts key-only SSH and becomes usable without interactive package installation.
-- The tracked CUDA fundamentals program compiles and runs successfully.
-- `./gpu up basics-pytorch` successfully performs a PyTorch CUDA operation without project-owned image layers.
-- `./gpu up performance-full` retains all existing compiler, framework, Triton, and profiler validation.
-- The median SSH-ready time for `basics-cuda` is lower than the project-owned full image under comparable tests.
-- `./gpu down` destroys every ephemeral Pod and leaves no billable storage.
-- Documentation states that official-image cache residency is an optimization, not a guarantee.
+- Both candidates complete at least two equivalent end-to-end trials.
+- The selected default accepts key-only SSH and requires no interactive package installation.
+- Native CUDA and PyTorch CUDA fundamentals run successfully on the selected default.
+- Missing profiling capabilities are documented and route users to `performance-full` when necessary.
+- If the selected default retains a volume, `down`, `status`, and `cleanup` expose and enforce the intended storage lifecycle.
+- Final cleanup leaves no unintended Pods, templates, volumes, or Terraform resources.
+- The documented choice acknowledges that official-image cache residency and Community host placement are not guaranteed.
 
 ## Out of scope
 
-- Persistent datasets or model volumes.
 - Baking repository source into images.
 - Making Mutagen the default workflow.
 - Assuming that a template reserves capacity or guarantees a cached host.
+- Optimizing large model or public-dataset storage before the fundamentals workflow is selected.
