@@ -2,6 +2,24 @@
 
 Use conventional commits with brief bullet points.
 
+## Purpose and curriculum
+
+This repository is a GPU development workspace for working through our own AI
+performance-engineering curriculum. It provides reproducible remote GPU
+environments, validation, and lifecycle controls; it is not a mirror of any
+upstream course.
+
+We may use external material as learning references, including:
+
+- [CUDA MODE Lecture 001](https://github.com/gpu-mode/lectures/tree/main/lecture_001)
+- [OLCF CUDA Training Series exercises](https://github.com/olcf/cuda-training-series/tree/master/exercises)
+
+When using a reference, write our own exercises, notes, tests, and solutions in
+this repository. Do not copy or vendor upstream source, generated artifacts, or
+datasets unless a task explicitly authorizes it and its license and attribution
+requirements have been reviewed. Keep reference repositories and learner work
+outside container images; synchronize source separately into the workspace.
+
 ## RunPod credentials
 
 - Use a dedicated RunPod key named `gpu-dev-workspace-macbook`.
