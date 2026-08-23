@@ -1,0 +1,28 @@
+#!/bin/sh
+set -eu
+
+root=$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)
+version=$(sed -n '1p' "$root/image/VERSION")
+revision=$(git -C "$root" rev-parse HEAD)
+image_name=${GPU_IMAGE_NAME:-gpu-dev-workspace}
+archive=$(mktemp "${TMPDIR:-/tmp}/gpu-dev-workspace-image.XXXXXX")
+trap 'rm -f "$archive"' EXIT HUP INT TERM
+
+case "$version" in
+  '' | *[!0-9A-Za-z._-]*)
+    echo "build-gpu-image: invalid image/VERSION: $version" >&2
+    exit 1
+    ;;
+esac
+
+docker buildx build \
+  --platform linux/amd64 \
+  --output "type=docker,dest=$archive" \
+  --build-arg "IMAGE_VERSION=$version" \
+  --build-arg "IMAGE_REVISION=$revision" \
+  --tag "$image_name:$version" \
+  --file "$root/image/Dockerfile" \
+  "$root"
+docker load --input "$archive" >/dev/null
+
+echo "build-gpu-image: built $image_name:$version for linux/amd64"

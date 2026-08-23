@@ -1,0 +1,12 @@
+.git
+.gpu
+.zed
+**/.terraform
+**/*.tfstate
+**/*.tfstate.*
+**/terraform.tfvars
+build
+profiles
+*.md
+!image/**/*.md
+tests
