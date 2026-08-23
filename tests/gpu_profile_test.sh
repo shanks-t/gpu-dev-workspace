@@ -41,7 +41,7 @@ if ! output=$(
     GPU_TEST_TF_STATE=$tf_state \
     RUNPOD_API_KEY=test-api-key \
     RUNPOD_SSH_KEY=$fake_home/.ssh/gpu_dev_ed25519 \
-    "$root/gpu" up book-persistent 2>&1
+    "$root/gpu" up 2>&1
 ); then
   printf '%s\n' "$output" >&2
   if [ -f "$tf_log" ]; then
@@ -50,7 +50,7 @@ if ! output=$(
   exit 1
 fi
 
-grep -Fq -- '-var-file='"$root"'/profiles/book-persistent/runpod.tfvars' "$tf_log" || {
+grep -Fq -- '-var-file='"$root"'/profiles/basics-cuda/runpod.tfvars' "$tf_log" || {
   echo 'profile var-file was not passed to Terraform; calls were:' >&2
   sed -n '1,120p' "$tf_log" >&2
   exit 1

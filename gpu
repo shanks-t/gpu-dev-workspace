@@ -4,7 +4,7 @@ set -eu
 root=$(CDPATH='' cd -- "$(dirname "$0")" && pwd)
 provider=${GPU_PROVIDER:-runpod}
 infra="$root/infra/$provider"
-default_profile=book-ephemeral
+default_profile=basics-cuda
 remote_path=${GPU_REMOTE_PATH:-/workspace/gpu-dev-workspace}
 ssh_dir=$HOME/.ssh
 ssh_config=$ssh_dir/config
@@ -15,6 +15,8 @@ startup_file=$root/.gpu/startup-$provider.json
 usage() {
   cat >&2 <<'EOF'
 usage: GPU_PROVIDER=runpod|gcp ./gpu up [PROFILE]
+       GPU_PROVIDER=runpod|gcp ./gpu doctor [PROFILE]
+       GPU_PROVIDER=runpod|gcp ./gpu profiles
        GPU_PROVIDER=runpod|gcp ./gpu <down|status|ssh|zed|check|cleanup>
 EOF
   exit 2
@@ -76,6 +78,103 @@ profile_path() {
   path=$root/profiles/$name/$provider.tfvars
   [ -f "$path" ] || fail "profile not found for $provider: $path"
   printf '%s\n' "$path"
+}
+
+profiles() {
+  find "$root/profiles" -mindepth 2 -maxdepth 2 -type f -name "$provider.tfvars" \
+    -exec dirname {} \; | sed 's|.*/||' | sort
+}
+
+doctor_ok() {
+  printf '  ok    %s\n' "$1"
+}
+
+doctor_fix() {
+  printf '  fix   %s\n' "$1" >&2
+  doctor_failed=1
+}
+
+doctor_need() {
+  if command -v "$1" >/dev/null 2>&1; then
+    doctor_ok "found $1"
+  else
+    doctor_fix "install $1"
+  fi
+}
+
+doctor() {
+  [ "$#" -le 1 ] || usage
+  requested_profile=${1:-basics-cuda}
+  doctor_failed=0
+
+  echo "gpu doctor: provider=$provider profile=$requested_profile"
+  for command_name in terraform curl jq ssh; do
+    doctor_need "$command_name"
+  done
+  if command -v zed >/dev/null 2>&1; then
+    doctor_ok "found zed (optional remote editor)"
+  else
+    printf '  note  Zed is optional; install it to use ./gpu zed\n'
+  fi
+
+  if profile_file=$(profile_path "$requested_profile" 2>/dev/null); then
+    doctor_ok "found profile ${profile_file#"$root"/}"
+  else
+    doctor_fix "choose an available profile with './gpu profiles'"
+  fi
+
+  case "$provider" in
+    runpod)
+      if command -v security >/dev/null 2>&1 &&
+        security find-generic-password -a "$USER" -s "runpod-gpu-workspace" -w \
+          >/dev/null 2>&1; then
+        doctor_ok "found RunPod API key in macOS Keychain"
+      elif [ -n "${RUNPOD_API_KEY:-}" ]; then
+        doctor_ok "found RUNPOD_API_KEY environment variable"
+      else
+        doctor_fix "store a restricted RunPod Pods: Read/Write key with 'security add-generic-password -U -a \"$USER\" -s runpod-gpu-workspace -w'"
+      fi
+
+      if [ -f "$(ssh_key)" ]; then
+        doctor_ok "found RunPod SSH private key $(ssh_key)"
+      else
+        doctor_fix "create an SSH key at $(ssh_key) and add its .pub file in RunPod"
+      fi
+
+      if [ "${requested_profile}" = gpu-mode-lecture-001 ] &&
+        ! grep -Eq '^[[:space:]]*container_registry_auth_id[[:space:]]*=[[:space:]]*"[^[:space:]"]+"' \
+          "$infra/terraform.tfvars" 2>/dev/null; then
+        doctor_fix "configure container_registry_auth_id in infra/runpod/terraform.tfvars for the private lecture image"
+      fi
+      ;;
+    gcp)
+      doctor_need gcloud
+      if command -v gcloud >/dev/null 2>&1 &&
+        gcloud auth application-default print-access-token >/dev/null 2>&1; then
+        doctor_ok "Application Default Credentials are available"
+      else
+        doctor_fix "run 'gcloud auth application-default login'"
+      fi
+      if [ -f "$infra/terraform.tfvars" ]; then
+        doctor_ok "found infra/gcp/terraform.tfvars"
+      else
+        doctor_fix "copy infra/gcp/terraform.tfvars.example to infra/gcp/terraform.tfvars and fill in its values"
+      fi
+      if [ -f "$(ssh_key)" ]; then
+        doctor_ok "found GCP SSH private key $(ssh_key)"
+      else
+        doctor_fix "create an SSH key at $(ssh_key) and configure its public key in infra/gcp/terraform.tfvars"
+      fi
+      ;;
+    *) fail "unsupported provider: $provider" ;;
+  esac
+
+  if [ "$doctor_failed" -eq 0 ]; then
+    echo "gpu doctor: ready; next run './gpu up $requested_profile'"
+    return 0
+  fi
+  echo "gpu doctor: setup is incomplete" >&2
+  return 1
 }
 
 validate_profile() {
@@ -462,8 +561,21 @@ check() {
   for test_script in "$root"/tests/*.sh; do
     "$test_script"
   done
-  terraform fmt -check -recursive "$root/infra"
-  terraform fmt -check -recursive "$root/profiles"
+  # Local terraform.tfvars files hold account-specific values and are ignored.
+  # Format only the tracked shared configuration in a temporary copy so a
+  # developer's credentials never make the repository check fail.
+  format_root=$(mktemp -d)
+  trap 'rm -rf "$format_root"' EXIT HUP INT TERM
+  git -C "$root" ls-files -- \
+    ':(glob)infra/**/*.tf' \
+    ':(glob)profiles/**/*.tfvars' |
+    while IFS= read -r source_file; do
+      target_dir=$format_root/$(dirname "$source_file")
+      mkdir -p "$target_dir"
+      cp "$root/$source_file" "$target_dir/"
+    done
+  terraform fmt -check -recursive "$format_root/infra"
+  terraform fmt -check -recursive "$format_root/profiles"
   for dir in "$root/infra/runpod" "$root/infra/gcp"; do
     terraform -chdir="$dir" init -backend=false -input=false >/dev/null
     terraform -chdir="$dir" validate
@@ -489,6 +601,8 @@ if [ "$provider" = runpod ]; then
 fi
 case "$command" in
   up) up "$@" ;;
+  doctor) doctor "$@" ;;
+  profiles) [ "$#" -eq 0 ] || usage; profiles ;;
   down) down ;;
   status) status ;;
   ssh) ssh_exec "$@" ;;

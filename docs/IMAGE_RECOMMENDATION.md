@@ -9,7 +9,7 @@ Use two RunPod images, not one oversized default:
 | `official-fundamentals` | RunPod-owned `runpod-torch-v280` template | Native CUDA, NumPy, and PyTorch CUDA fundamentals on the single RTX 3090 | Triton, reproducible profiler work, or any exercise with pinned package/toolchain requirements |
 | `performance-full` | Immutable project GHCR image | Triton, Nsight Compute/Systems, the project smoke test, and pinned CUDA 13/PyTorch 2.9.1 work | Quick fundamentals sessions once the official template is validated faster |
 
-This is a provisional routing recommendation, not yet a default change. Bare `./gpu up` remains `book-ephemeral` (`performance-full`) until both profiles complete two equivalent end-to-end trials. The initial results establish only that a RunPod-owned image can sometimes reach SSH quickly; they do not establish repeatable GPU-and-workspace readiness.
+This is a record of image-routing experiments, not an onboarding requirement. Bare `./gpu up` uses the lightweight `basics-cuda` profile; choose a specialized image only when a named exercise requires it.
 
 ## Exercise routing
 

@@ -64,7 +64,7 @@ The current seed is a separate remote Git repository without an upstream remote 
 - Export a patch and apply it locally.
 - Add a dedicated `gpu pull` operation that retrieves changed files without Terraform state, credentials, caches, or build products.
 
-The default `book-ephemeral` profile deletes the remote working copy on `gpu down`. Until a return path is implemented, treat remote-first as disposable experimentation or manually retrieve important changes before shutdown.
+The default `basics-cuda` profile deletes the remote working copy on `gpu down`. Until a return path is implemented, treat remote-first as disposable experimentation or manually retrieve important changes before shutdown.
 
 ## Local-first workflow
 
@@ -147,4 +147,3 @@ Choose local-first when:
 - Most editing and static checks run locally, with only GPU execution delegated remotely.
 
 For this project, local-first plus `gpu sync` and `gpu run` is likely the safer default once those operations exist. Remote-first remains valuable for profiling sessions and experiments that depend heavily on the remote CUDA environment.
-

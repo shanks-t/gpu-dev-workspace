@@ -20,9 +20,16 @@ to reproduce multi-GPU or Blackwell-only results.
    make check
    ```
 
-3. Set up **one** provider below. RunPod is the recommended first path; GCP is
+3. Inspect the supported profiles and run a free preflight before provisioning:
+
+   ```sh
+   ./gpu profiles
+   ./gpu doctor basics-cuda
+   ```
+
+4. Set up **one** provider below. RunPod is the recommended first path; GCP is
    the fallback when its quota and capacity are available.
-4. Start a workspace, open it, and stop it when finished:
+5. Start a workspace, open it, and stop it when finished:
 
    ```sh
    ./gpu up basics-cuda
@@ -114,7 +121,7 @@ quota alone does not guarantee that a zone has a GPU available.
 4. Provision and use the GCP profile:
 
    ```sh
-   GPU_PROVIDER=gcp ./gpu up book-ephemeral
+   GPU_PROVIDER=gcp ./gpu up basics-cuda
    GPU_PROVIDER=gcp ./gpu zed
    GPU_PROVIDER=gcp ./gpu down
    ```
@@ -149,6 +156,8 @@ authentication ID in `infra/runpod/terraform.tfvars`.
 | `./gpu zed` | Open the remote workspace in Zed. |
 | `./gpu ssh [COMMAND]` | Open a shell or run one command through the managed SSH alias. |
 | `./gpu status` | Show the provider's workspace state and retained-storage status. |
+| `./gpu profiles` | List the profiles available for the selected provider. |
+| `./gpu doctor [PROFILE]` | Check local tools, credentials, SSH keys, profile availability, and lecture-image setup without provisioning. |
 | `./gpu down` | Delete an ephemeral workspace or stop a persistent one. |
 | `./gpu cleanup` | Permanently delete a persistent workspace and its storage after confirmation. |
 | `make check` | Run shell, test, Terraform formatting, and Terraform validation checks locally. |

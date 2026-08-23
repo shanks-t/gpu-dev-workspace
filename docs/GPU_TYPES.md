@@ -4,7 +4,7 @@ Last refreshed: **2026-08-22**. Prices are USD per running hour for a one-GPU ta
 
 ## Recommended progression
 
-1. **RTX 3090 on RunPod Community** is the default CUDA lab. It provides 24 GB at the lowest current target price and matches the Terraform default. It covers architecture-neutral exercises, not the book repository's Blackwell-only paths.
+1. **RTX 3090 on RunPod Community** is the default `basics-cuda` lab. It provides 24 GB at the lowest current target price. It covers architecture-neutral exercises, not the book repository's Blackwell-only paths.
 2. **RTX 4090 on RunPod Community** is the performance step-up for Ada, FP8, and stronger Tensor Core experiments while retaining a 24 GB memory limit.
 3. **RTX 5090 on RunPod** is for Blackwell-specific behavior and 32 GB workloads, not routine development.
 4. **A40 or RTX A6000 on RunPod Secure** is the economical 48 GB path. Prefer A40 when available; use L40S when Ada features matter.
