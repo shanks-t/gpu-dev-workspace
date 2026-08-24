@@ -27,25 +27,19 @@ not a host or local Python interpreter.
 
 ## Zed setup
 
-1. Run `brev refresh` on the Mac so the Brev instance is available through
-   SSH.
-2. In Zed, open the **Remote Projects** dialog and connect using the same SSH
-   host alias used by `brev shell INSTANCE`. Open
-   `/home/ubuntu/workspace` on the VM.
-3. When Zed detects `.devcontainer/devcontainer.json`, choose **Open in
-   Container**. If the prompt was dismissed, use **Project: Open Remote** from
-   the command palette and choose the dev-container option.
-4. Open `curriculum/brev/gpu-mode-lecture-001/pytorch_square.py`. In the
-   toolchain selector, select `/opt/conda/bin/python` if Zed did not choose it
-   automatically.
+Zed supports either a local development container or an SSH remote project, but
+it does not currently support opening a development container on an SSH remote
+host. Do not choose **Open in Container** for this project on the Mac: Zed will
+run the Compose configuration locally, where it cannot use the Brev GPU image
+or the remote Docker daemon.
 
-Zed runs its language servers in the remote development container, so its
-built-in basedpyright server can inspect the installed PyTorch package. The
-project's `.zed/settings.json` asks it to analyze the workspace and retain
-library source for type information. Hover `torch.square` or
-`torch.profiler.profile` to view their signature and documentation.
+To use Zed today, connect with **Remote Projects** to the Brev VM and open
+`/home/ubuntu/workspace`. This gives Zed remote editing, but its language
+server runs on the VM host rather than in the pinned NGC container. The
+project's `.zed/settings.json` configures Zed's basedpyright server to retain
+library source whenever the selected toolchain has PyTorch installed.
 
-If imports or hover documentation are missing, verify the project is running
-in the container and the selected toolchain is `/opt/conda/bin/python`. Then
-run **Editor: Restart Language Server** and inspect **Dev: Open Language Server
-Logs** if the issue continues.
+For the fully reproducible NGC PyTorch environment and complete hover
+documentation, use VS Code's Remote SSH plus Dev Containers workflow above.
+Zed support for remote development containers must be added upstream before the
+same workflow can work in Zed.
