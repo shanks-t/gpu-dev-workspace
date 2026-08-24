@@ -24,7 +24,9 @@ Transformers for hover documentation and static feedback.
 
 Triton is tracked as a Linux-only `gpu` extra because it is not a supported
 macOS runtime. Its source still receives Python syntax highlighting locally;
-run its CUDA code on the GPU VM.
+run its CUDA code on the GPU VM. The lecture's `pyrightconfig.json` points Zed
+at lightweight local Triton stubs, so `triton_square.py` has resolved imports
+and the APIs used in the lesson do not produce missing-import diagnostics.
 
 ## VS Code setup
 
