@@ -1,10 +1,30 @@
 # Editor support
 
-Python hover documentation and type information for the curriculum requires an
-interpreter that has the same PyTorch installation as the exercise runtime.
-This repository's local macOS interpreter does not need PyTorch installed.
-Instead, open the workspace in the pinned NGC PyTorch development container on
-the Brev VM.
+Python syntax highlighting works without an interpreter. Hover documentation,
+type information, and import diagnostics require an interpreter that has the
+libraries used by the source file installed.
+
+## Local Zed setup (recommended for editing)
+
+Each lecture has a self-contained `uv` project. It mirrors the Python library
+generation used by the pinned NGC Lecture 001 image while using macOS-compatible
+packages for local editing. It is for editor feedback only: CUDA execution,
+Triton kernels, and profiling still run on the Brev VM.
+
+```sh
+cd curriculum/gpu-mode-lecture-001
+uv sync --python 3.11
+```
+
+This creates `curriculum/gpu-mode-lecture-001/.venv` and installs the exact
+versions recorded in `pyproject.toml` and `uv.lock`. In Zed, open the local
+repository and choose that `.venv` in the Python toolchain selector. Zed's
+basedpyright server then resolves PyTorch, NumPy, Numba, Matplotlib, and
+Transformers for hover documentation and static feedback.
+
+Triton is tracked as a Linux-only `gpu` extra because it is not a supported
+macOS runtime. Its source still receives Python syntax highlighting locally;
+run its CUDA code on the GPU VM.
 
 ## VS Code setup
 
@@ -13,7 +33,7 @@ the Brev VM.
 3. Run **Dev Containers: Reopen in Container**. VS Code uses
    `.devcontainer/devcontainer.json`, which starts the repository's pinned NGC
    PyTorch compose service.
-4. Open `curriculum/brev/gpu-mode-lecture-001/pytorch_square.py` and choose
+4. Open `curriculum/gpu-mode-lecture-001/pytorch_square.py` and choose
    `/usr/bin/python` if VS Code asks for an interpreter.
 
 The workspace recommends the Python and Pylance extensions. Pylance is
