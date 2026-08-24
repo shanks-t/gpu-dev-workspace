@@ -11,6 +11,9 @@ brev search --json --min-vram 16 --min-capability 8.0 --min-disk 100 --max-boot-
 
 Read [Brev onboarding](docs/brev/onboarding.md) before any live action. It explains installation, interactive authentication, profile price caps, NGC Keychain handling, source synchronization, mandatory watchdogs, billing evidence, and cleanup. Live provisioning is intentionally not performed by this repository without fresh user approval.
 
+For PyTorch hover documentation, open the workspace on the Brev VM in the
+pinned NGC development container. See [editor support](docs/brev/editor.md).
+
 ## Layout
 
 - `curriculum/brev/`: learner code and attributed reference notes.

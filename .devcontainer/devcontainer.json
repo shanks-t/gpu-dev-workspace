@@ -1,0 +1,22 @@
+{
+  "name": "GPU Dev Workspace (NGC PyTorch)",
+  "dockerComposeFile": ["../infra/brev/compose/ngc-pytorch.compose.yaml"],
+  "service": "pytorch",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "none",
+  "overrideCommand": true,
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/opt/conda/bin/python",
+        "python.analysis.indexing": true,
+        "python.analysis.languageServerMode": "full",
+        "python.analysis.useLibraryCodeForTypes": true
+      }
+    }
+  }
+}
