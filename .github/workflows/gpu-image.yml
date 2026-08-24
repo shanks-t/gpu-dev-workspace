@@ -1,6 +1,11 @@
 name: Lecture-full GPU image
 
 on:
+  push:
+    branches: [rebuild/runpod-workspace]
+    paths:
+      - ".github/workflows/gpu-image.yml"
+      - "images/lecture-full/**"
   workflow_dispatch:
 
 permissions:

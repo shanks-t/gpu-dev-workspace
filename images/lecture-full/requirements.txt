@@ -1,3 +1,4 @@
-# Torch and Triton are supplied and pinned by the versioned RunPod base image.
-numba==0.61.2
-matplotlib==3.10.3
+# Torch installs its matching Triton from the CUDA 13 wheel index.
+numpy==2.3.5
+numba==0.67.0
+matplotlib==3.11.1
