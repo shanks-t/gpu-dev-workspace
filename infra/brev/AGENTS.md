@@ -1,6 +1,6 @@
 # Brev GPU targets and cost controls
 
-Use the NVIDIA Brev CLI directly. Do not add a custom lifecycle wrapper or use an undocumented Brev API.
+Use the NVIDIA Brev CLI directly
 
 ## Search targets
 
