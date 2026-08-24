@@ -60,3 +60,9 @@ security add-generic-password -U -a "$USER" -s ngc-api-key -w
 On the Mac, `infra/brev/scripts/ngc-login INSTANCE` streams the Keychain secret over managed SSH directly into remote `docker login nvcr.io` with username `$oauthtoken`. Do not enable shell tracing or record its output. `infra/brev/compose/ngc-pytorch.compose.yaml` uses the versioned upstream `nvcr.io/nvidia/pytorch:24.07-py3` release and all GPUs. Before upgrades, review NVIDIA release notes, record the tag or authenticated digest and tool versions in the commit, then run an approved smoke session.
 
 Stopping preserves `/home/ubuntu/workspace`, but provider capacity can be unavailable after a stop and storage may continue to cost money. Deletion permanently removes instance data. Schedule the local watchdog immediately; the maximum validation budget is a profile’s boot ceiling plus runtime deadline. Review Brev Console billing, credit, and resource-limit alerts before and after every session. Record provider, GPU, price, boot time, cleanup result, and billing evidence location in ignored `reports/brev/`, never tracked files.
+
+## Conditional instance-cost email alerts
+
+To catch an instance left running, a local Codex automation named **Brev instance cost and status review** runs every four hours. It audits the Brev inventory and estimated cost, then sends a Resend email only when it finds a RUNNING cloud workspace or the audit encounters a Brev, pricing, or authentication error. A clean stopped-only report stays in Codex and does not send email.
+
+The Resend key is stored only in the macOS Keychain under the `codex-brev-resend-api-key` service and is read at send time; do not put it in this repository, a shell profile, or the automation prompt. The alert is a reminder to stop the workspace when finished; it never starts, stops, resets, or deletes Brev instances.
