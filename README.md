@@ -6,8 +6,10 @@ profile it remotely. The repository has two intentionally separate environments:
 
 - `configs/fundamentals.json`: a low-cost Community Pod using RunPod's maintained
   PyTorch template for early PyTorch/CUDA work.
-- `configs/lecture-full.example.json`: a Secure Cloud Network Volume workspace
-  for the project-owned, digest-pinned CUDA development and profiling image.
+- `configs/lecture-ngc.example.json`: a Community Pod using a private, pinned
+  NVIDIA NGC PyTorch template for CUDA development and Nsight profiling.
+- `configs/lecture-full.example.json`: an optional Secure Cloud Network Volume
+  workspace for a project-owned, digest-pinned CUDA development and profiling image.
 
 The complete image is defined in `images/lecture-full/`. Build it locally with
 `scripts/build-image lecture-full REGISTRY/IMAGE:VERSION`; add `--push` only
@@ -18,6 +20,29 @@ The **Lecture-full GPU image** GitHub Actions workflow is the preferred
 publisher: it builds Linux AMD64 and publishes a versioned tag plus a
 commit-specific tag to GHCR. Record the published digest, never a mutable tag,
 in the local workspace configuration.
+
+## Recommended profiling template: NVIDIA NGC
+
+Use NVIDIA's pinned `nvcr.io/nvidia/pytorch:24.07-py3` image for the advanced
+lecture profile instead of maintaining a project image. NVIDIA documents this
+release as including CUDA 12.5.1, Nsight Compute, and Nsight Systems. Create
+an NGC API key, save it in the macOS Keychain service `ngc-api-key`, and create
+a private RunPod registry credential with username `$oauthtoken`. Keep that
+credential ID and the private RunPod template ID out of version control.
+
+Copy the example to an ignored local configuration, replace the template ID,
+and inspect the request before creating a disposable validation Pod:
+
+```sh
+cp configs/lecture-ngc.example.json configs/lecture-ngc.local.json
+# Edit template_id in configs/lecture-ngc.local.json.
+./workspacectl plan configs/lecture-ngc.local.json
+./workspacectl create configs/lecture-ngc.local.json --apply
+```
+
+The image reference must be pinned by digest when the private template is
+created. This avoids mutable-tag surprises while retaining NVIDIA's maintained
+CUDA, PyTorch, compiler, and profiler stack.
 
 ## Configure a workspace
 

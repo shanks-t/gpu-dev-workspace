@@ -1,0 +1,15 @@
+{
+  "name": "gpu-lecture-ngc",
+  "cloud_type": "COMMUNITY",
+  "template_id": "REPLACE_WITH_PRIVATE_NGC_TEMPLATE_ID",
+  "gpu_type_ids": ["NVIDIA GeForce RTX 4090", "NVIDIA GeForce RTX 3090"],
+  "gpu_count": 1,
+  "data_center_ids": [],
+  "container_disk_gb": 50,
+  "storage": {
+    "mode": "DISPOSABLE",
+    "volume_gb": 20
+  },
+  "public_ssh": true,
+  "interruptible": false
+}
