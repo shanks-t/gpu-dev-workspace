@@ -2,17 +2,15 @@
 
 This is the supported GPU workspace route: a Brev **VM** provides managed SSH and persistent `/home/ubuntu/workspace`; an official NVIDIA NGC container provides the workload. No project CUDA image or image-level SSH service is used.
 
-## Local setup and preview
+## Local setup
 
 ```sh
 brew install brevdev/homebrew-brev/brev
 brev --version
 brev login
-brev search --json --min-vram 16 --min-capability 8.0 --min-disk 100 --max-boot-time 7 --stoppable --sort price
-brev create gpu-fundamentals --min-vram 16 --min-capability 8.0 --min-disk 100 --max-boot-time 7 --stoppable --sort price --dry-run
 ```
 
-Require Brev CLI v0.6.334 or newer and authenticate with `brev login`. Review dry-run results manually; do not select a fundamentals result above $1.50/hour. The hardware targets, price ceilings, and deadline rules live in [`infra/brev/AGENTS.md`](../../infra/brev/AGENTS.md), not in a custom provisioner.
+Require Brev CLI v0.6.334 or newer and authenticate with `brev login`. Then follow [choosing a GPU development VM](instance-selection.md): it first reuses a suitable stopped VM, then covers the hardware requirements and the five-candidate price-and-boot-time search for a new one.
 
 ## AI-agent CLI support
 
@@ -23,11 +21,11 @@ The Brev CLI's `brev-cli` skill is installed for Codex through the Brev plugin. 
 Only after explicit approval to spend:
 
 ```sh
-brev create gpu-fundamentals --min-vram 16 --min-capability 8.0 --min-disk 100 --max-boot-time 7 --sort price --stoppable --timeout 420
+brev create INSTANCE --min-vram 16 --min-capability 8.0 --min-disk 100 --sort price --stoppable --timeout 420
 brev refresh
-infra/brev/scripts/sync-source gpu-fundamentals
-infra/brev/scripts/watchdog gpu-fundamentals 120 --confirm-watchdog
-infra/brev/scripts/smoke gpu-fundamentals
+infra/brev/scripts/sync-source INSTANCE
+infra/brev/scripts/watchdog INSTANCE 120 --confirm-watchdog
+infra/brev/scripts/smoke INSTANCE
 ```
 
 `brev refresh` is the connection source of truth: it refreshes `~/.brev/ssh_config`, so `ssh INSTANCE`, `brev shell INSTANCE`, and rsync use Brev-managed connection details without image-level `sshd`. Use `brev open INSTANCE code` for an editor and `brev port-forward INSTANCE --port 6006:6006` for a private tunnel. `brev copy` is a one-off fallback; the source-sync script is the normal incremental `rsync --delete` route.
@@ -39,7 +37,7 @@ compose service. Do not run CUDA, Triton, or profiling commands directly on
 the VM host.
 
 ```sh
-brev shell gpu-fundamentals
+brev shell INSTANCE
 cd /home/ubuntu/workspace
 docker compose -f infra/brev/compose/ngc-pytorch.compose.yaml run --rm pytorch -lc \
   'cd curriculum/gpu-mode-lecture-001 && python pytorch_square.py'
@@ -49,9 +47,8 @@ Generated plots, traces, and reports belong beneath the lecture's
 `artifacts/` directory. To run the validated Triton/Nsight Compute workflow
 and bring its results back to the Mac, follow [`ncu.md`](ncu.md).
 
-For live workspace inventory, reproducibility metadata, and replacing an
-unavailable VM with a comparably sized and priced candidate, follow
-[`hardware-profiles.md`](hardware-profiles.md).
+For live workspace inventory and replacing an unavailable VM with a comparably
+sized and priced candidate, follow [choosing a GPU development VM](instance-selection.md).
 
 ## NGC and cleanup
 

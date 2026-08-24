@@ -22,25 +22,19 @@ edit locally  →  sync to a GPU VM  →  run in NVIDIA NGC  →  profile & lear
 
 ## Start here
 
-1. Run the repository checks:
-
-   ```sh
-   make check
-   ```
-
-2. Read the [Brev + NGC onboarding guide](docs/brev/onboarding.md). It is the
+1. Read the [Brev + NGC onboarding guide](docs/brev/onboarding.md). It is the
    complete guide to installing and authenticating the CLI, choosing a
    cost-capped GPU, creating a VM, syncing the workspace, using NGC securely,
    and cleaning up.
 
-3. Browse [the curriculum](curriculum/README.md), then begin with
+2. Browse [the curriculum](curriculum/README.md), then begin with
    [`gpu-mode-lecture-001`](curriculum/gpu-mode-lecture-001/). The lessons run
    remotely in the NGC container; local Python environments are for editor
    feedback only. See [editor support](docs/brev/editor.md) for that setup.
 
-No GPU is provisioned by `make check` or by reading these docs. Creating or
-starting a VM incurs provider charges—use the dry-run and price-capped commands
-in the onboarding guide first.
+Reading these docs does not provision a GPU. Creating or starting a VM incurs
+provider charges—follow the instance-selection guide and dry-run workflow
+first.
 
 ## What lives here
 
@@ -58,9 +52,11 @@ This workspace is optimized for an intentional, ephemeral GPU session:
 
 1. **Prepare locally.** Edit an exercise and use a lecture-local environment
    for syntax, type checking, and hover information.
-2. **Acquire the right compute.** Search for a current Brev VM that meets the
-   exercise's hardware and price requirements. The supported profiles and
-   replacement criteria are in [hardware profiles](docs/brev/hardware-profiles.md).
+2. **Reuse or select compute.** Check for a suitable stopped Brev VM first:
+   starting one is faster and preserves its workspace. When a new VM is
+   necessary, use the [GPU VM selection guide](docs/brev/instance-selection.md)
+   to review the five cheapest candidates that meet the hardware and price
+   requirements.
 3. **Synchronize and validate.** Copy the repository to the VM, start the
    watchdog, and run the smoke test before spending time on an experiment.
 4. **Run, edit, and rerun.** Execute CUDA, PyTorch, Triton, and profiler work

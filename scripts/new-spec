@@ -40,5 +40,4 @@ for artifact in spec.md tasks.md; do
 done
 
 echo "Created $spec_dir"
-echo "Next: fill in spec.md and tasks.md, then run:"
-echo "  make spec-check path=specs/$date_prefix-$name"
+echo "Next: fill in spec.md and tasks.md."
