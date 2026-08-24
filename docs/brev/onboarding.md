@@ -14,6 +14,10 @@ brev create gpu-fundamentals --min-vram 16 --min-capability 8.0 --min-disk 100 -
 
 Require Brev CLI v0.6.334 or newer and authenticate with `brev login`. Review dry-run results manually; do not select a fundamentals result above $1.50/hour. The hardware targets, price ceilings, and deadline rules live in [`infra/brev/AGENTS.md`](../../infra/brev/AGENTS.md), not in a custom provisioner.
 
+## AI-agent CLI support
+
+The Brev CLI's `brev-cli` skill is installed for Codex through the Brev plugin. For every Brev or NGC task, use that skill: it translates natural-language requests into the supported CLI workflow, checks the current instance inventory, shows cost before creation, and requires confirmation for stop or delete operations. Keep the skill current with `brev agent-skill install`; start a new Codex task after updating it. See NVIDIA's [Using the CLI with AI Agents](https://docs.nvidia.com/brev/guides/ai-agents/cli-with-agents) guide for installation, updates, and safety behavior.
+
 ## Approved live session
 
 Only after explicit approval to spend:
@@ -35,7 +39,7 @@ compose service. Do not run CUDA, Triton, or profiling commands directly on
 the VM host.
 
 ```sh
-brev shell gpu-profiling
+brev shell gpu-fundamentals
 cd /home/ubuntu/workspace
 docker compose -f infra/brev/compose/ngc-pytorch.compose.yaml run --rm pytorch -lc \
   'cd curriculum/gpu-mode-lecture-001 && python pytorch_square.py'
