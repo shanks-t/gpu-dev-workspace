@@ -27,19 +27,59 @@ not a host or local Python interpreter.
 
 ## Zed setup
 
-Zed supports either a local development container or an SSH remote project, but
-it does not currently support opening a development container on an SSH remote
-host. Do not choose **Open in Container** for this project on the Mac: Zed will
-run the Compose configuration locally, where it cannot use the Brev GPU image
-or the remote Docker daemon.
+Zed cannot reopen a Remote SSH project in a development container. Instead,
+run an SSH endpoint inside the pinned PyTorch container and connect Zed directly
+to that endpoint. This makes Zed's language server run in the same environment
+as the exercises, including its installed PyTorch documentation.
 
-To use Zed today, connect with **Remote Projects** to the Brev VM and open
-`/home/ubuntu/workspace`. This gives Zed remote editing, but its language
-server runs on the VM host rather than in the pinned NGC container. The
-project's `.zed/settings.json` configures Zed's basedpyright server to retain
-library source whenever the selected toolchain has PyTorch installed.
+### Start the Zed container
 
-For the fully reproducible NGC PyTorch environment and complete hover
-documentation, use VS Code's Remote SSH plus Dev Containers workflow above.
-Zed support for remote development containers must be added upstream before the
-same workflow can work in Zed.
+Synchronize the repository to an approved VM, then start the Zed-specific
+container. The SSH port is bound to the VM loopback interface only; it is not
+exposed publicly.
+
+```sh
+infra/brev/scripts/sync-source gpu-profiling
+ssh gpu-profiling '
+  cd /home/ubuntu/workspace
+  docker compose -f infra/brev/compose/zed-pytorch.compose.yaml up --detach --build
+'
+```
+
+If the NGC image is not already present on the VM, run
+`infra/brev/scripts/ngc-login gpu-profiling` first.
+
+### Connect Zed
+
+Add this one-time entry to the Mac's `~/.ssh/config`; replace `gpu-profiling`
+with the Brev instance name when needed:
+
+```sshconfig
+Host gpu-profiling-zed
+  HostName 127.0.0.1
+  Port 2222
+  User zed
+  ProxyJump gpu-profiling
+```
+
+In Zed, open **Remote Projects**, connect to `gpu-profiling-zed`, and open
+`/workspace`. The `.zed/settings.json` project configuration makes
+basedpyright analyze the full workspace and retain library source. Verify the
+connection before opening Zed:
+
+```sh
+ssh gpu-profiling-zed 'python -c "import torch; print(torch.__version__)"'
+```
+
+Hover `torch.square` or `torch.profiler.profile` to view PyTorch signatures and
+documentation. Use **Editor: Restart Language Server** if Zed finishes its
+initial indexing without providing hover information.
+
+### Stop the Zed container
+
+```sh
+ssh gpu-profiling '
+  cd /home/ubuntu/workspace
+  docker compose -f infra/brev/compose/zed-pytorch.compose.yaml down
+'
+```

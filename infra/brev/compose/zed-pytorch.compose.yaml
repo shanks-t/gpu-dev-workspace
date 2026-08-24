@@ -1,0 +1,14 @@
+services:
+  zed:
+    build:
+      context: ../images/zed
+    image: gpu-dev-workspace-zed-pytorch:24.07
+    gpus: all
+    working_dir: /workspace
+    volumes:
+      - /home/ubuntu/workspace:/workspace
+      - /home/ubuntu/.ssh/authorized_keys:/home/zed/.ssh/authorized_keys:ro
+    ports:
+      - 127.0.0.1:2222:22
+    environment:
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
