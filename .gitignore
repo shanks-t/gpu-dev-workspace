@@ -1,5 +1,9 @@
 .DS_Store
 
+# Local RunPod configurations and run reports may contain provider resource IDs.
+configs/*.local.json
+reports/
+
 # Local, dated planning artifacts. Keep the workflow and templates versioned.
 specs/*
 !specs/README.md
