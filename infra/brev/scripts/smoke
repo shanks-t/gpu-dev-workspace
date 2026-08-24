@@ -3,7 +3,7 @@ set -euo pipefail
 
 instance=${1:?usage: smoke INSTANCE}
 brev refresh
-ssh "$instance" "bash -s" <<'REMOTE'
+ssh -o ControlMaster=no -o ControlPath=none "$instance" "bash -s" <<'REMOTE'
 set -euo pipefail
 cd /home/ubuntu/workspace
 nvidia-smi

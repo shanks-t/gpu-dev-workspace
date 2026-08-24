@@ -5,4 +5,4 @@ set -euo pipefail
 instance=${1:?usage: ngc-login INSTANCE}
 brev refresh
 security find-generic-password -a "$USER" -s ngc-api-key -w \
-  | ssh "$instance" "docker login nvcr.io --username '\$oauthtoken' --password-stdin"
+  | ssh -o ControlMaster=no -o ControlPath=none "$instance" "docker login nvcr.io --username '\$oauthtoken' --password-stdin"
