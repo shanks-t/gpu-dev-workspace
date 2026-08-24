@@ -24,29 +24,8 @@ datasets unless a task explicitly authorizes it and its license and attribution
 requirements have been reviewed. Keep reference repositories and learner work
 outside container images; synchronize source separately into the workspace.
 
-## RunPod credentials
+## Brev and NGC credentials
 
-- Use a dedicated RunPod key named `gpu-dev-workspace-macbook`.
-- Set permission to **Restricted** with **Pods: Read/Write**. Leave Serverless endpoints, billing, registry authentication, and network volumes at **None** unless the repository starts managing them.
-- Never use an **All access** key for this workspace.
-- Never put the key in this repository, a Terraform variable, `.env`, `.zshrc`, or shell history. Never print or log it.
-
-Store the key in the macOS login Keychain. Keeping `-w` last makes `security` prompt for the value instead of putting it in the command or shell history:
-
-```sh
-security add-generic-password \
-  -U \
-  -a "$USER" \
-  -s "runpod-gpu-workspace" \
-  -w
-```
-
-The CLI automatically retrieves this item for RunPod commands and exports it only inside its own process. It is inherited by Terraform and API requests but does not modify the parent terminal environment:
-
-```sh
-./gpu up
-./gpu status
-./gpu zed
-```
-
-An existing `RUNPOD_API_KEY` environment variable takes precedence, which supports CI and temporary credentials. Zed uses the API key only to resolve the current Pod endpoint; SSH authentication uses the configured private key. Revoke and replace either credential immediately if it is exposed.
+- Never place Brev credentials, NGC API keys, instance IDs, costs, or provider resource IDs in Git, config files, shell history, images, or logs.
+- Store an NGC API key only in the macOS login Keychain as service `ngc-api-key`. Retrieve it only with `infra/brev/scripts/ngc-login`, which streams it to Docker with `--password-stdin`.
+- Brev authentication is interactive (`brev login`) and managed below `~/.brev/`. Use `brev refresh` before SSH, rsync, or after a stopped instance restarts.

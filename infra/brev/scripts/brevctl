@@ -120,6 +120,9 @@ def main() -> int:
             print_command(command)
             if args.command == "create" and not args.confirm_create:
                 print("Dry run only. Re-run with --confirm-create after selecting an eligible result within max_hourly_price_usd.")
+            if args.command == "create" and args.confirm_create:
+                require_brev()
+                return subprocess.run(command).returncode
             return 0
         command = ["brev", args.command]
         if args.command in {"start", "stop", "delete"}:

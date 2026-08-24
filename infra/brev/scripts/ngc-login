@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# This runs on the Mac. The token is streamed over SSH stdin and never exported.
+instance=${1:?usage: ngc-login INSTANCE}
+brev refresh
+security find-generic-password -a "$USER" -s ngc-api-key -w \
+  | ssh "$instance" "docker login nvcr.io --username '\$oauthtoken' --password-stdin"

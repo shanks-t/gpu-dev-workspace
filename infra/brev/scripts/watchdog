@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+instance=${1:?usage: watchdog INSTANCE DEADLINE_MINUTES --confirm-watchdog}
+deadline=${2:?usage: watchdog INSTANCE DEADLINE_MINUTES --confirm-watchdog}
+confirmation=${3:-}
+if [[ "$confirmation" != --confirm-watchdog ]] || ! [[ "$deadline" =~ ^[1-9][0-9]*$ ]]; then
+  echo "Refusing to schedule a stop. Use: watchdog INSTANCE DEADLINE_MINUTES --confirm-watchdog" >&2
+  exit 2
+fi
+mkdir -p reports/brev
+log="reports/brev/watchdog-${instance}-$(date +%Y%m%dT%H%M%S).log"
+nohup bash -c "sleep $((deadline * 60)); brev stop $(printf '%q' "$instance")" >"$log" 2>&1 < /dev/null &
+echo "Watchdog PID $! will run 'brev stop $instance' in $deadline minutes; log: $log"

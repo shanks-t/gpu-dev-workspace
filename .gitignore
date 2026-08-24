@@ -2,6 +2,10 @@
 
 # Local Brev state and billing evidence may contain provider resource IDs.
 reports/brev/
+!reports/
+!reports/brev/
+reports/brev/*
+!reports/brev/README.md
 .brev/
 
 # Local, dated planning artifacts. Keep the workflow and templates versioned.

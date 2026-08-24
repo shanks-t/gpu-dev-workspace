@@ -1,6 +1,6 @@
 # GPU MODE Lecture 001
 
-This is our runnable copy of GPU MODE's first CUDA lecture. See the original
+This directory keeps our practice notes and runnable reference material for GPU MODE's first CUDA lecture. See the original
 [CUDA MODE lectures repository](https://github.com/gpu-mode/lectures) and its
 [Lecture 001 materials](https://github.com/gpu-mode/lectures/tree/main/lecture_001),
 including the upstream slides. The scripts introduce PyTorch operations and
@@ -9,48 +9,37 @@ and license are recorded in [UPSTREAM.md](UPSTREAM.md).
 
 ## Prerequisites
 
-The `gpu-mode-lecture-001` profile uses the project-owned `0.1.1` image. It
-contains CUDA 13, a C++ compiler, Ninja, PyTorch, Triton, Numba, Matplotlib,
-Transformers, Nsight Compute, and Nsight Systems. It must be published to GHCR
-and RunPod must have a read-only GHCR registry-authentication ID before the
-profile can start.
+Use the `profiling` Brev profile and the upstream NVIDIA NGC PyTorch workload.
+The host VM owns SSH and the synchronized workspace; the container provides
+CUDA, PyTorch, and the Nsight tools. See [`docs/brev/onboarding.md`](../../../docs/brev/onboarding.md).
 
 ## Start a remote node
 
 From the repository root on the local machine:
 
 ```sh
-./gpu up gpu-mode-lecture-001
-./gpu zed
+infra/brev/scripts/brevctl create profiling
+infra/brev/scripts/sync-source gpu-profiling
+infra/brev/scripts/smoke gpu-profiling
 ```
 
-The profile has a retained 50 GB `/workspace` volume. At the end of a session,
-stop compute without discarding JIT build caches or profiler artifacts:
+At the end of a session, stop compute. `/home/ubuntu/workspace` persists
+between Brev stops, but capacity can be unavailable when an instance restarts:
 
 ```sh
-./gpu down
-./gpu status
+infra/brev/scripts/brevctl stop gpu-profiling
 ```
 
-The profile persists PyTorch extension, TorchInductor, Triton, Numba, and
-Matplotlib caches below `/workspace/.cache`. This does not make the first Pod
-allocation faster, but it avoids repeating local compilation and cache setup
-after `down` and `up` on the retained workspace.
-
-When the exercise is complete, permanently delete the Pod and its retained
-volume:
-
-```sh
-./gpu cleanup
-```
+When the exercise is complete, delete the test instance with the explicit
+confirmation required by `brevctl`.
 
 ## Verify the environment
 
-Open a shell on the Pod, then enter this directory:
+Open a shell on the VM, then enter this directory:
 
 ```sh
-./gpu ssh
-cd /workspace/gpu-dev-workspace/curriculum/gpu-mode-lecture-001
+infra/brev/scripts/brevctl shell gpu-profiling
+cd /home/ubuntu/workspace/curriculum/brev/gpu-mode-lecture-001
 python -c 'import matplotlib, numba, torch, transformers, triton; assert torch.cuda.is_available(); print(torch.cuda.get_device_name())'
 nvcc --version
 ncu --version

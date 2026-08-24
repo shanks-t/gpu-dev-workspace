@@ -1,0 +1,50 @@
+# Brev + NGC onboarding
+
+This is the supported GPU workspace route: a Brev **VM** provides managed SSH and persistent `/home/ubuntu/workspace`; an official NVIDIA NGC container provides the workload. No project CUDA image or image-level SSH service is used.
+
+## Local setup and preview
+
+```sh
+brew install brevdev/homebrew-brev/brev
+brev --version
+brev login
+infra/brev/scripts/brevctl search fundamentals
+infra/brev/scripts/brevctl create fundamentals
+```
+
+`brevctl` requires Brev CLI v0.6.334 or newer and checks authentication with `brev list` for live commands. Its default create flow prints a documented `brev create --dry-run` command only. Review a result manually and select no option above the profile `max_hourly_price_usd`.
+
+Profiles under `infra/brev/profiles/` are the repository’s Terraform-like desired state, not Terraform, Pulumi, or a Brev control API. Safe JSON overrides are explicit:
+
+```sh
+infra/brev/scripts/brevctl plan fundamentals --set disk_gb=150
+infra/brev/scripts/brevctl create fundamentals --set provider_preferences='["nebius"]'
+```
+
+An override needs `--allow-price-increase` and `--confirm-create` before a live create command is printed. The profile retains its price, boot-time, and runtime gates.
+
+## Approved live session
+
+Only after explicit approval to spend:
+
+```sh
+brev create gpu-fundamentals --min-vram 16 --min-capability 8.0 --min-disk 100 --max-boot-time 7 --sort price --stoppable --timeout 420
+brev refresh
+infra/brev/scripts/sync-source gpu-fundamentals
+infra/brev/scripts/watchdog gpu-fundamentals 120 --confirm-watchdog
+infra/brev/scripts/smoke gpu-fundamentals
+```
+
+`brev refresh` is the connection source of truth: it refreshes `~/.brev/ssh_config`, so `ssh INSTANCE`, `brev shell INSTANCE`, and rsync use Brev-managed connection details without image-level `sshd`. Use `brev open INSTANCE code` for an editor and `brev port-forward INSTANCE --port 6006:6006` for a private tunnel. `brev copy` is a one-off fallback; the source-sync script is the normal incremental `rsync --delete` route.
+
+## NGC and cleanup
+
+Save a user-owned NGC API key without exposing it on the command line:
+
+```sh
+security add-generic-password -U -a "$USER" -s ngc-api-key -w
+```
+
+On the Mac, `infra/brev/scripts/ngc-login INSTANCE` streams the Keychain secret over managed SSH directly into remote `docker login nvcr.io` with username `$oauthtoken`. Do not enable shell tracing or record its output. `infra/brev/compose/ngc-pytorch.compose.yaml` uses the versioned upstream `nvcr.io/nvidia/pytorch:24.07-py3` release and all GPUs. Before upgrades, review NVIDIA release notes, record the tag or authenticated digest and tool versions in the commit, then run an approved smoke session.
+
+Stopping preserves `/home/ubuntu/workspace`, but provider capacity can be unavailable after a stop and storage may continue to cost money. Deletion permanently removes instance data. Schedule the local watchdog immediately; the maximum validation budget is a profile’s boot ceiling plus runtime deadline. Review Brev Console billing, credit, and resource-limit alerts before and after every session. Record provider, GPU, price, boot time, cleanup result, and billing evidence location in ignored `reports/brev/`, never tracked files.
