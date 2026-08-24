@@ -113,3 +113,15 @@ def create_payload(config: dict[str, Any]) -> dict[str, Any]:
     else:
         payload["networkVolumeId"] = storage["network_volume_id"]
     return payload
+
+
+def network_volume_payload(config: dict[str, Any]) -> dict[str, Any]:
+    required = {"name", "size_gb", "data_center_id"}
+    missing = required - config.keys()
+    if missing:
+        raise ConfigError(f"Missing volume fields: {', '.join(sorted(missing))}")
+    if not isinstance(config["size_gb"], int) or not 1 <= config["size_gb"] <= 4000:
+        raise ConfigError("size_gb must be an integer between 1 and 4000")
+    if not isinstance(config["data_center_id"], str) or not config["data_center_id"]:
+        raise ConfigError("data_center_id must be a non-empty string")
+    return {"name": config["name"], "size": config["size_gb"], "dataCenterId": config["data_center_id"]}

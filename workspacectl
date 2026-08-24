@@ -22,6 +22,11 @@ def main() -> int:
         command.add_argument("--set", dest="overrides", action="append", default=[], metavar="PATH=JSON")
         if name == "create":
             command.add_argument("--apply", action="store_true", help="make the POST request")
+    for name in ("volume-plan", "volume-create"):
+        command = commands.add_parser(name)
+        command.add_argument("configuration", type=Path)
+        if name == "volume-create":
+            command.add_argument("--apply", action="store_true", help="make the POST request")
     command = commands.add_parser("status")
     command.add_argument("pod_id")
     command = commands.add_parser("logs")
@@ -46,6 +51,16 @@ def main() -> int:
             print(json.dumps({"method": "POST", "path": "/pods", "body": payload}, indent=2))
             return 0
         print(json.dumps(api.request("POST", "/pods", payload), indent=2))
+    elif args.command in {"volume-plan", "volume-create"}:
+        try:
+            volume_config = json.loads(args.configuration.read_text())
+        except (OSError, json.JSONDecodeError) as error:
+            parser.error(f"Cannot read volume configuration: {error}")
+        payload = config.network_volume_payload(volume_config)
+        if args.command == "volume-plan" or not args.apply:
+            print(json.dumps({"method": "POST", "path": "/networkvolumes", "body": payload}, indent=2))
+            return 0
+        print(json.dumps(api.request("POST", "/networkvolumes", payload), indent=2))
     elif args.command == "status":
         print(json.dumps(api.request("GET", f"/pods/{args.pod_id}"), indent=2))
     elif args.command == "logs":

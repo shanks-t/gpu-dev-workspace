@@ -32,6 +32,14 @@ published project image digest, a Secure Cloud Network Volume ID, and a data
 center matching that volume; copy its example configuration to an ignored local
 file and replace its explicit placeholders.
 
+Create the Network Volume first, using the same data center that the
+`lecture-full` Pod will request:
+
+```sh
+./workspacectl volume-plan configs/lecture-volume.example.json
+./workspacectl volume-create path/to/lecture-volume.local.json --apply
+```
+
 The create operation is dry-run by default. A resource is created only with:
 
 ```sh

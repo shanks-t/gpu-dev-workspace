@@ -1,6 +1,6 @@
 import unittest
 
-from runpod_workspace.config import ConfigError, create_payload, validate
+from runpod_workspace.config import ConfigError, create_payload, network_volume_payload, validate
 from runpod_workspace.api import ApiError
 from runpod_workspace.ssh import endpoint, rsync_command
 from pathlib import Path
@@ -48,3 +48,7 @@ class ConfigTests(unittest.TestCase):
     def test_sync_rejects_proxy_only_pod(self):
         with self.assertRaises(ApiError):
             endpoint({"publicIp": "", "portMappings": {}})
+
+    def test_network_volume_payload(self):
+        payload = network_volume_payload({"name": "workspace", "size_gb": 50, "data_center_id": "US-KS-2"})
+        self.assertEqual(payload, {"name": "workspace", "size": 50, "dataCenterId": "US-KS-2"})
