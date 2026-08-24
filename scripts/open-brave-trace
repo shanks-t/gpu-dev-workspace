@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: open-brave-trace TRACE.json
+
+Open Brave's tracing viewer and reveal a local Chrome-trace JSON artifact in
+Finder. Drag the selected file into brave://tracing/ to load it.
+
+The trace must already be on this Mac. Copy a remote artifact first with
+`brev copy`.
+EOF
+}
+
+if [[ ${1:-} == --help || ${1:-} == -h ]]; then
+  usage
+  exit 0
+fi
+
+trace=${1:-}
+if [[ -z "$trace" ]]; then
+  usage >&2
+  exit 2
+fi
+
+if [[ $(uname) != Darwin ]]; then
+  echo "This helper requires macOS and Brave Browser." >&2
+  exit 1
+fi
+
+if [[ ! -f "$trace" ]]; then
+  echo "Trace file not found: $trace" >&2
+  exit 1
+fi
+
+trace=$(cd "$(dirname "$trace")" && pwd)/$(basename "$trace")
+
+open -a "Brave Browser" "brave://tracing/"
+open -R "$trace"
+
+echo "Brave's trace viewer and the artifact are open. Drag this file into the viewer:"
+echo "  $trace"
