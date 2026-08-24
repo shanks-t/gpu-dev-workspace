@@ -45,6 +45,10 @@ Generated plots, traces, and reports belong beneath the lecture's
 `artifacts/` directory. To run the validated Triton/Nsight Compute workflow
 and bring its results back to the Mac, follow [`ncu.md`](ncu.md).
 
+For live workspace inventory, reproducibility metadata, and replacing an
+unavailable VM with a comparably sized and priced candidate, follow
+[`hardware-profiles.md`](hardware-profiles.md).
+
 ## NGC and cleanup
 
 Save a user-owned NGC API key without exposing it on the command line:
