@@ -31,3 +31,8 @@ class ProfileTests(unittest.TestCase):
     def test_create_is_always_dry_run_in_rendered_plan(self):
         profile = brevctl.load_profile("fundamentals", [])
         self.assertIn("--dry-run", brevctl.rendered(profile)["create_dry_run"])
+
+    def test_profile_render_keeps_the_price_gate_local_and_visible(self):
+        profile = brevctl.load_profile("fundamentals", [])
+        self.assertEqual(profile["max_hourly_price_usd"], 1.50)
+        self.assertEqual(profile["runtime_deadline_minutes"], 120)

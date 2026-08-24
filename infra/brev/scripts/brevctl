@@ -118,6 +118,9 @@ def main() -> int:
                     raise ValueError("overrides require --allow-price-increase after reviewing the new price ceiling")
                 command = commands["create"]
             print_command(command)
+            if args.command == "search":
+                require_brev()
+                return subprocess.run(command).returncode
             if args.command == "create" and not args.confirm_create:
                 print("Dry run only. Re-run with --confirm-create after selecting an eligible result within max_hourly_price_usd.")
             if args.command == "create" and args.confirm_create:
