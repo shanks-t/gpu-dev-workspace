@@ -58,7 +58,7 @@ Nsight Compute desktop application:
 ```sh
 docker compose -f infra/brev/compose/ngc-pytorch.compose.yaml run --rm --cap-add SYS_ADMIN pytorch -lc \
   'cd curriculum/gpu-mode-lecture-001 && \
-   ncu --target-processes all --kernel-name regex:square_kernel --launch-count 1 \
+   ncu --target-processes all --kernel-name regex:square_kernel --launch-count 1 --page details \
        -o artifacts/triton-square python triton_square.py'
 ```
 

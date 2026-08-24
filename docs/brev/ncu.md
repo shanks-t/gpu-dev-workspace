@@ -48,7 +48,7 @@ policy.
 docker compose -f infra/brev/compose/ngc-pytorch.compose.yaml run --rm \
   --cap-add SYS_ADMIN pytorch -lc \
   'cd curriculum/gpu-mode-lecture-001/artifacts && \
-   ncu --target-processes all --kernel-name regex:square_kernel --launch-count 1 \
+   ncu --target-processes all --kernel-name regex:square_kernel --launch-count 1 --page details \
        -o triton-square-ncu python ../triton_square.py' \
   2>&1 | tee curriculum/gpu-mode-lecture-001/artifacts/triton-square-ncu.log
 ```
