@@ -42,6 +42,12 @@ and price will vary. Each result includes fields such as:
 }
 ```
 
-Review the returned candidates and run the corresponding `brev create ...
---dry-run` command before requesting approval for a live creation. Do not
-commit live provider identities, capacity, or price quotes to the repository.
+Review a candidate with a dry run before requesting approval to create it:
+
+```sh
+brev create INSTANCE --min-vram 16 --min-capability 8.0 --min-disk 100 \
+  --stoppable --sort price --dry-run
+```
+
+After approval, remove `--dry-run` and add `--timeout 420`. Do not commit live
+provider identities, capacity, or price quotes to the repository.
