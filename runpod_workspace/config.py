@@ -101,6 +101,8 @@ def create_payload(config: dict[str, Any]) -> dict[str, Any]:
     }
     if "image" in config:
         payload["imageName"] = config["image"]
+        if registry_auth_id := config.get("registry_auth_id"):
+            payload["containerRegistryAuthId"] = registry_auth_id
     else:
         payload["templateId"] = config["template_id"]
     if config.get("data_center_ids"):

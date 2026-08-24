@@ -9,6 +9,11 @@ profile it remotely. The repository has two intentionally separate environments:
 - `configs/lecture-full.example.json`: a Secure Cloud Network Volume workspace
   for the project-owned, digest-pinned CUDA development and profiling image.
 
+The complete image is defined in `images/lecture-full/`. Build it locally with
+`scripts/build-image lecture-full REGISTRY/IMAGE:VERSION`; add `--push` only
+when you intend to publish. Copy the returned digest into a local configuration
+before creating a Pod.
+
 ## Configure a workspace
 
 Configurations are JSON and are the source of truth for GPU count/type, data

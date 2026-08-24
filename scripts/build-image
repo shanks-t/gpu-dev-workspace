@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  echo "Usage: $0 lecture-full <registry/image:tag> [--push]" >&2
+  exit 2
+}
+
+profile=${1:-}
+target=${2:-}
+publish=${3:-}
+[[ "$profile" == "lecture-full" && -n "$target" ]] || usage
+[[ -z "$publish" || "$publish" == "--push" ]] || usage
+
+args=(docker buildx build --platform linux/amd64 --tag "$target" --file "images/$profile/Dockerfile")
+[[ "$publish" == "--push" ]] && args+=(--push) || args+=(--load)
+"${args[@]}" "images/$profile"
+
+if [[ "$publish" == "--push" ]]; then
+  echo "Record the resulting immutable digest in a local lecture-full configuration."
+fi

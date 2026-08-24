@@ -24,6 +24,8 @@ def main() -> int:
             command.add_argument("--apply", action="store_true", help="make the POST request")
     command = commands.add_parser("status")
     command.add_argument("pod_id")
+    command = commands.add_parser("logs")
+    command.add_argument("pod_id")
     command = commands.add_parser("stop")
     command.add_argument("pod_id")
     command.add_argument("--apply", action="store_true")
@@ -46,6 +48,9 @@ def main() -> int:
         print(json.dumps(api.request("POST", "/pods", payload), indent=2))
     elif args.command == "status":
         print(json.dumps(api.request("GET", f"/pods/{args.pod_id}"), indent=2))
+    elif args.command == "logs":
+        print(f"Open Pod {args.pod_id} in the RunPod Console and expand Logs:")
+        print(f"https://www.runpod.io/console/pods/{args.pod_id}")
     elif args.command == "stop":
         if not args.apply:
             print(f"DRY RUN: POST /pods/{args.pod_id}/stop (pass --apply to execute)")

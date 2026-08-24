@@ -35,6 +35,10 @@ class ConfigTests(unittest.TestCase):
         config["template_id"] = "runpod-torch-v280"
         self.assertEqual(create_payload(config)["templateId"], "runpod-torch-v280")
 
+    def test_private_image_includes_registry_authentication(self):
+        config = {**BASE, "registry_auth_id": "registry-123"}
+        self.assertEqual(create_payload(config)["containerRegistryAuthId"], "registry-123")
+
     def test_sync_uses_direct_mapped_ssh(self):
         pod = {"publicIp": "198.51.100.2", "portMappings": {"22": 10222}}
         command = rsync_command(pod, Path("."), "/workspace/repo", Path("/tmp/key"))
