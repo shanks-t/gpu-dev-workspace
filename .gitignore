@@ -8,15 +8,14 @@ reports/brev/*
 !reports/brev/README.md
 .brev/
 
-# Local, dated planning artifacts. Keep the workflow and templates versioned.
-specs/*
-!specs/README.md
-!specs/templates/
-!specs/templates/spec.md
-!specs/templates/tasks.md
+# Local, dated planning artifacts.
+docs/specs/
 __pycache__/
 *.pyc
 .venv/
+.artifacts/
+curriculum/**/artifacts/*
+!curriculum/**/artifacts/.gitkeep
 .gpu/
 **/.terraform/
 *.tfstate

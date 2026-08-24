@@ -8,6 +8,7 @@ print(a * a)
 
 def time_pytorch_function(func, input):
     # CUDA IS ASYNC so can't use python time module
+    # if you just use py time module, you only measuer overhead to launch kernel and not how not time kernel actually took
     start = torch.cuda.Event(enable_timing=True)
     end = torch.cuda.Event(enable_timing=True)
 
