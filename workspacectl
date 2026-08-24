@@ -29,9 +29,13 @@ def main() -> int:
             command.add_argument("--apply", action="store_true", help="make the POST request")
     command = commands.add_parser("status")
     command.add_argument("pod_id")
+    command.add_argument("--raw", action="store_true")
     command = commands.add_parser("logs")
     command.add_argument("pod_id")
     command = commands.add_parser("stop")
+    command.add_argument("pod_id")
+    command.add_argument("--apply", action="store_true")
+    command = commands.add_parser("start")
     command.add_argument("pod_id")
     command.add_argument("--apply", action="store_true")
     command = commands.add_parser("destroy")
@@ -62,7 +66,8 @@ def main() -> int:
             return 0
         print(json.dumps(api.request("POST", "/networkvolumes", payload), indent=2))
     elif args.command == "status":
-        print(json.dumps(api.request("GET", f"/pods/{args.pod_id}"), indent=2))
+        pod = api.request("GET", f"/pods/{args.pod_id}")
+        print(json.dumps(pod if args.raw else api.status_summary(pod), indent=2))
     elif args.command == "logs":
         print(f"Open Pod {args.pod_id} in the RunPod Console and expand Logs:")
         print(f"https://www.runpod.io/console/pods/{args.pod_id}")
@@ -71,6 +76,11 @@ def main() -> int:
             print(f"DRY RUN: POST /pods/{args.pod_id}/stop (pass --apply to execute)")
         else:
             print(json.dumps(api.request("POST", f"/pods/{args.pod_id}/stop"), indent=2))
+    elif args.command == "start":
+        if not args.apply:
+            print(f"DRY RUN: POST /pods/{args.pod_id}/start (pass --apply to execute)")
+        else:
+            print(json.dumps(api.request("POST", f"/pods/{args.pod_id}/start"), indent=2))
     elif args.command == "destroy":
         if args.confirm != args.pod_id:
             parser.error("destroy requires --confirm with the exact pod ID")

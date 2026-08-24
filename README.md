@@ -76,6 +76,8 @@ is no longer needed.
 
 ```sh
 ./workspacectl status POD_ID
+./workspacectl logs POD_ID
+./workspacectl start POD_ID --apply
 ./workspacectl stop POD_ID
 ./workspacectl stop POD_ID --apply
 ./workspacectl destroy POD_ID --confirm POD_ID

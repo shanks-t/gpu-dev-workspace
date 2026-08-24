@@ -16,6 +16,28 @@ class ApiError(RuntimeError):
     pass
 
 
+def status_summary(pod: dict[str, Any]) -> dict[str, Any]:
+    """Select lifecycle, price, and storage facts that matter to a developer."""
+    network_volume = pod.get("networkVolume") or {}
+    return {
+        "id": pod.get("id"),
+        "name": pod.get("name"),
+        "desired_status": pod.get("desiredStatus"),
+        "last_status_change": pod.get("lastStatusChange"),
+        "gpu": (pod.get("gpu") or {}).get("displayName"),
+        "gpu_count": (pod.get("gpu") or {}).get("count"),
+        "cost_per_hour": pod.get("costPerHr"),
+        "public_ssh_ready": bool(pod.get("publicIp") and (pod.get("portMappings") or {}).get("22")),
+        "pod_volume_gb": pod.get("volumeInGb"),
+        "network_volume": network_volume or None,
+        "storage_notice": (
+            "Network Volume persists and continues storage billing after Pod stop or deletion."
+            if network_volume else
+            "Pod volume persists only while this Pod exists; destroy removes it."
+        ),
+    }
+
+
 def api_key() -> str:
     if value := os.environ.get("RUNPOD_API_KEY"):
         return value

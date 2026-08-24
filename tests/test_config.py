@@ -1,7 +1,7 @@
 import unittest
 
 from runpod_workspace.config import ConfigError, create_payload, network_volume_payload, validate
-from runpod_workspace.api import ApiError
+from runpod_workspace.api import ApiError, status_summary
 from runpod_workspace.ssh import endpoint, rsync_command
 from pathlib import Path
 
@@ -52,3 +52,7 @@ class ConfigTests(unittest.TestCase):
     def test_network_volume_payload(self):
         payload = network_volume_payload({"name": "workspace", "size_gb": 50, "data_center_id": "US-KS-2"})
         self.assertEqual(payload, {"name": "workspace", "size": 50, "dataCenterId": "US-KS-2"})
+
+    def test_status_discloses_retained_network_volume(self):
+        summary = status_summary({"id": "pod", "networkVolume": {"id": "volume", "size": 50}})
+        self.assertIn("continues storage billing", summary["storage_notice"])
