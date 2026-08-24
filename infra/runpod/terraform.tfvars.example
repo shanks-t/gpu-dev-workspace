@@ -1,6 +1,0 @@
-# RunPod workload settings belong in ../../profiles/*/runpod.tfvars. This file is reserved
-# for optional local overrides; explicit profile values take precedence.
-
-# Required only while the GHCR package is private. Create registry credentials in RunPod,
-# then copy the resulting registry authentication ID here.
-# container_registry_auth_id = "replace-with-runpod-registry-auth-id"

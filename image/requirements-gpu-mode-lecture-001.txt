@@ -1,6 +1,0 @@
-# GPU MODE Lecture 001 uses these alongside the pinned CUDA/PyTorch/Triton
-# toolchain in requirements-cuda.txt. Keep them in the project image so a
-# remote exercise session never begins with an interactive package install.
-numba==0.67.0
-matplotlib==3.11.1
-transformers==5.15.1
