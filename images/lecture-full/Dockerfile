@@ -12,9 +12,18 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update --yes \
  && apt-get install --yes --no-install-recommends \
       build-essential \
+      ca-certificates \
       git \
+      gnupg \
       openssh-server \
       rsync \
+      wget \
+ && wget -qO- https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub \
+      | gpg --dearmor --output /usr/share/keyrings/nvidia-devtools-keyring.gpg \
+ && echo "deb [signed-by=/usr/share/keyrings/nvidia-devtools-keyring.gpg] https://developer.download.nvidia.com/devtools/repos/ubuntu2404/$(dpkg --print-architecture)/ /" \
+      > /etc/apt/sources.list.d/nvidia-devtools.list \
+ && apt-get update --yes \
+ && apt-get install --yes --no-install-recommends nsight-systems-cli \
  && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /tmp/requirements.txt
