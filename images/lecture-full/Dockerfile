@@ -20,6 +20,8 @@ RUN apt-get update --yes \
 COPY requirements.txt /tmp/requirements.txt
 RUN python -m pip install --requirement /tmp/requirements.txt
 
+COPY --chmod=755 start-workspace /usr/local/bin/start-workspace
+
 RUN command -v nvcc \
  && command -v ncu \
  && command -v nsys \
@@ -30,3 +32,4 @@ print(torch.__version__, triton.__version__, numba.__version__)
 PY
 
 WORKDIR /workspace
+CMD ["/usr/local/bin/start-workspace"]
