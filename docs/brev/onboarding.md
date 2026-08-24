@@ -28,6 +28,23 @@ infra/brev/scripts/smoke gpu-fundamentals
 
 `brev refresh` is the connection source of truth: it refreshes `~/.brev/ssh_config`, so `ssh INSTANCE`, `brev shell INSTANCE`, and rsync use Brev-managed connection details without image-level `sshd`. Use `brev open INSTANCE code` for an editor and `brev port-forward INSTANCE --port 6006:6006` for a private tunnel. `brev copy` is a one-off fallback; the source-sync script is the normal incremental `rsync --delete` route.
 
+## Run the workload in NGC
+
+After the VM is ready, enter its managed shell and run exercises through the
+compose service. Do not run CUDA, Triton, or profiling commands directly on
+the VM host.
+
+```sh
+brev shell gpu-profiling
+cd /home/ubuntu/workspace
+docker compose -f infra/brev/compose/ngc-pytorch.compose.yaml run --rm pytorch -lc \
+  'cd curriculum/gpu-mode-lecture-001 && python pytorch_square.py'
+```
+
+Generated plots, traces, and reports belong beneath the lecture's
+`artifacts/` directory. To run the validated Triton/Nsight Compute workflow
+and bring its results back to the Mac, follow [`ncu.md`](ncu.md).
+
 ## NGC and cleanup
 
 Save a user-owned NGC API key without exposing it on the command line:
