@@ -1,6 +1,9 @@
 import unittest
 
 from runpod_workspace.config import ConfigError, create_payload, validate
+from runpod_workspace.api import ApiError
+from runpod_workspace.ssh import endpoint, rsync_command
+from pathlib import Path
 
 
 BASE = {
@@ -31,3 +34,13 @@ class ConfigTests(unittest.TestCase):
         config = {key: value for key, value in BASE.items() if key != "image"}
         config["template_id"] = "runpod-torch-v280"
         self.assertEqual(create_payload(config)["templateId"], "runpod-torch-v280")
+
+    def test_sync_uses_direct_mapped_ssh(self):
+        pod = {"publicIp": "198.51.100.2", "portMappings": {"22": 10222}}
+        command = rsync_command(pod, Path("."), "/workspace/repo", Path("/tmp/key"))
+        self.assertIn("-p 10222", command[8])
+        self.assertEqual(command[-1], "root@198.51.100.2:/workspace/repo/")
+
+    def test_sync_rejects_proxy_only_pod(self):
+        with self.assertRaises(ApiError):
+            endpoint({"publicIp": "", "portMappings": {}})
