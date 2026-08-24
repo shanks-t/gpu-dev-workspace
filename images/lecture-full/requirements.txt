@@ -1,4 +1,0 @@
-# Torch installs its matching Triton from the CUDA 13 wheel index.
-numpy==2.3.5
-numba==0.67.0
-matplotlib==3.11.1

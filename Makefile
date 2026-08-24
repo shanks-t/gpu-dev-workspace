@@ -1,11 +1,14 @@
-.PHONY: check test plan-fundamentals
+.PHONY: check test plan-fundamentals plan-profiling
 
 check: test
-	@python3 -m py_compile workspacectl runpod_workspace/*.py
+	@python3 -m py_compile infra/brev/scripts/brevctl
 	@git diff --check
 
 test:
 	@python3 -m unittest discover -s tests -v
 
 plan-fundamentals:
-	@./workspacectl plan configs/fundamentals.json
+	@infra/brev/scripts/brevctl plan fundamentals
+
+plan-profiling:
+	@infra/brev/scripts/brevctl plan profiling

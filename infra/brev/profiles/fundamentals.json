@@ -1,0 +1,14 @@
+{
+  "name": "gpu-fundamentals",
+  "gpu_count": 1,
+  "min_vram_gb": 16,
+  "max_vram_gb": 24,
+  "min_compute_capability": "8.0",
+  "disk_gb": 100,
+  "stoppable": true,
+  "max_boot_time_minutes": 7,
+  "max_hourly_price_usd": 1.50,
+  "runtime_deadline_minutes": 120,
+  "provider_preferences": [],
+  "sort": "price"
+}

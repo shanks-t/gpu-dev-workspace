@@ -1,8 +1,8 @@
 .DS_Store
 
-# Local RunPod configurations and run reports may contain provider resource IDs.
-configs/*.local.json
-reports/
+# Local Brev state and billing evidence may contain provider resource IDs.
+reports/brev/
+.brev/
 
 # Local, dated planning artifacts. Keep the workflow and templates versioned.
 specs/*
@@ -16,7 +16,3 @@ __pycache__/
 **/.terraform/
 *.tfstate
 *.tfstate.*
-*.tfvars
-!profiles/**/*.tfvars
-*.tfplan
-crash.log
