@@ -16,6 +16,7 @@ specs/*
 !specs/templates/tasks.md
 __pycache__/
 *.pyc
+.venv/
 .gpu/
 **/.terraform/
 *.tfstate

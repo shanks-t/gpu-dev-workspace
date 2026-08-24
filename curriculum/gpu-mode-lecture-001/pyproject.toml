@@ -1,0 +1,22 @@
+[project]
+name = "gpu-mode-lecture-001"
+version = "0.1.0"
+description = "Local editor environment for CUDA MODE Lecture 001"
+requires-python = ">=3.10,<3.12"
+dependencies = [
+  "matplotlib==3.9.2",
+  "numba==0.60.0",
+  "numpy==1.26.4",
+  "torch==2.4.1",
+  "transformers==4.44.2",
+]
+
+[project.optional-dependencies]
+# Triton requires Linux and a supported NVIDIA GPU. Keep it pinned with the
+# lecture, while allowing the local macOS editor environment to resolve.
+gpu = [
+  "triton==3.0.0; sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
+
+[tool.uv]
+package = false
