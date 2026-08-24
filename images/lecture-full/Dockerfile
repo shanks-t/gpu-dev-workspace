@@ -32,6 +32,7 @@ RUN apt-get update --yes \
  && python3 -m pip install --break-system-packages --upgrade pip \
  && python3 -m pip install --break-system-packages \
       --index-url https://download.pytorch.org/whl/cu130 \
+      --extra-index-url https://pypi.org/simple \
       torch==2.9.1 torchvision==0.24.1 torchaudio==2.9.1 \
  && python3 -m pip install --break-system-packages --requirement /tmp/requirements.txt
 
