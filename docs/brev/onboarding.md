@@ -28,7 +28,9 @@ infra/brev/scripts/watchdog INSTANCE 120 --confirm-watchdog
 infra/brev/scripts/smoke INSTANCE
 ```
 
-`brev refresh` is the connection source of truth: it refreshes `~/.brev/ssh_config`, so `ssh INSTANCE`, `brev shell INSTANCE`, and rsync use Brev-managed connection details without image-level `sshd`. Use `brev open INSTANCE code` for an editor and `brev port-forward INSTANCE --port 6006:6006` for a private tunnel. `brev copy` is a one-off fallback; the source-sync script is the normal incremental `rsync --delete` route.
+`brev refresh` is the connection source of truth: it refreshes `~/.brev/ssh_config`, so `ssh INSTANCE`, `brev shell INSTANCE`, and rsync use Brev-managed connection details without image-level `sshd`. Use `brev port-forward INSTANCE --port 6006:6006` for a private tunnel. `brev copy` is a one-off fallback; the source-sync script is the normal incremental `rsync --delete` route.
+
+For the normal development loop, keep the repository open locally in Zed, edit there, run `infra/brev/scripts/sync-source INSTANCE`, then rerun the workload on the VM. See [Zed and VM editing](editor.md) for the complete setup.
 
 ## Run the workload in NGC
 

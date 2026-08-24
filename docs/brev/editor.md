@@ -1,14 +1,14 @@
-# Editor support
+# Edit locally with Zed, run on the VM
 
-Edit the repository locally. The local environment provides syntax, type, and
-hover support; GPU execution remains in the pinned NGC container on the Brev
-VM. Do not execute GPU lesson code with the Mac interpreter.
+Zed is the recommended editor. Keep the repository open locally in Zed, then
+sync changes to the Brev VM and run GPU code there in the pinned NGC container.
+The Mac environment is for editing feedback only; do not run GPU lesson code
+with the Mac interpreter.
 
-## Local Zed setup (recommended)
+## One-time local setup
 
-Each lecture has a self-contained `uv` project. It provides macOS-compatible
-libraries for editor feedback, while CUDA execution, Triton kernels, and
-profiling run remotely.
+Each lecture has a self-contained `uv` project for local syntax, type, and
+hover support:
 
 ```sh
 cd curriculum/gpu-mode-lecture-001
@@ -16,29 +16,29 @@ uv sync --python 3.11
 ```
 
 Open the repository in Zed and select
-`curriculum/gpu-mode-lecture-001/.venv` as the Python toolchain. Zed's
-basedpyright server can then resolve PyTorch, NumPy, Numba, Matplotlib, and
-Transformers for hover information and static feedback.
+`curriculum/gpu-mode-lecture-001/.venv` as its Python toolchain. Zed can then
+resolve the macOS-compatible dependencies for static feedback. Triton is not a
+supported macOS runtime, so run Triton and CUDA code on the VM.
 
-Triton is a Linux-only `gpu` extra, so it is not a supported macOS runtime.
-Its source still receives Python syntax highlighting locally; run Triton code
-on the GPU VM.
+## Edit, sync, run, repeat
 
-## VS Code
+1. Start or choose `INSTANCE` with the [GPU VM selection guide](instance-selection.md).
+2. Make changes locally in Zed.
+3. Sync the working tree to the VM, then open its shell:
 
-`brev open INSTANCE code` opens the Brev-managed Remote SSH workspace. Use it
-when you need to inspect or edit files on `/home/ubuntu/workspace`, then run
-the code in the NGC container from a terminal:
+   ```sh
+   infra/brev/scripts/sync-source INSTANCE
+   brev shell INSTANCE
+   ```
 
-```sh
-brev open gpu-profiling code
-brev shell gpu-profiling
-cd /home/ubuntu/workspace
-docker compose -f infra/brev/compose/ngc-pytorch.compose.yaml run --rm pytorch -lc \
-  'cd curriculum/gpu-mode-lecture-001 && python pytorch_square.py'
-```
+4. On the VM, run the exercise through NGC:
 
-The repository no longer ships a Dev Container or a Zed-specific SSH
-container. Those paths are intentionally unsupported; use the compose command
-above for all GPU execution. If hover information is missing locally, restart
-the editor's Python language server and confirm it uses the lecture `.venv`.
+   ```sh
+   cd /home/ubuntu/workspace
+   docker compose -f infra/brev/compose/ngc-pytorch.compose.yaml run --rm pytorch -lc \
+     'cd curriculum/gpu-mode-lecture-001 && python pytorch_square.py'
+   ```
+
+After the next edit in Zed, repeat the sync and run steps. `sync-source` is
+the normal incremental `rsync --delete` path; it refreshes the Brev connection
+details before copying files.
