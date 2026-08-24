@@ -2,9 +2,12 @@
 
 Use conventional commits with brief bullet points.
 
-## Lightweight spec workflow
+## Today I Learned entries
 
-For the process, templates, and commands, see [specs/README.md](specs/README.md).
+When a user asks to capture a learning, create one Markdown file in the
+appropriate `til/<topic>/` directory, then add its title, link, and date to the
+table of contents in `TIL.md`. Include a minimal reproducible code or command
+example when useful.
 
 ## Purpose and curriculum
 
