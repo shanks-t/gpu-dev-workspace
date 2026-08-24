@@ -1,14 +1,5 @@
-.PHONY: check test plan-fundamentals plan-profiling
+.PHONY: check
 
-check: test
-	@python3 -m py_compile infra/brev/scripts/brevctl
+check:
+	@find infra/brev/scripts -maxdepth 1 -type f -print0 | xargs -0 bash -n
 	@git diff --check
-
-test:
-	@python3 -m unittest discover -s tests -v
-
-plan-fundamentals:
-	@infra/brev/scripts/brevctl plan fundamentals
-
-plan-profiling:
-	@infra/brev/scripts/brevctl plan profiling

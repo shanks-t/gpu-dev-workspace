@@ -6,8 +6,7 @@ The default GPU development route is NVIDIA Brev VMs plus official NVIDIA NGC wo
 
 ```sh
 make check
-make plan-fundamentals
-infra/brev/scripts/brevctl search fundamentals
+brev search --json --min-vram 16 --min-capability 8.0 --min-disk 100 --max-boot-time 7 --stoppable --sort price
 ```
 
 Read [Brev onboarding](docs/brev/onboarding.md) before any live action. It explains installation, interactive authentication, profile price caps, NGC Keychain handling, source synchronization, mandatory watchdogs, billing evidence, and cleanup. Live provisioning is intentionally not performed by this repository without fresh user approval.
@@ -15,13 +14,13 @@ Read [Brev onboarding](docs/brev/onboarding.md) before any live action. It expla
 ## Layout
 
 - `curriculum/brev/`: learner code and attributed reference notes.
-- `infra/brev/profiles/`: declarative fundamentals and profiling requirements.
+- `infra/brev/AGENTS.md`: GPU search targets and cost controls.
 - `infra/brev/scripts/`: guarded lifecycle, sync, login, watchdog, and smoke commands.
 - `infra/brev/compose/`: NGC workload contract.
 - `docs/brev/`: onboarding and decisions.
 - `reports/brev/`: ignored local cost and run evidence.
 
-The `fundamentals` profile requests one 16–24 GB, compute-capability 8.0+ GPU, price sorted and stoppable. `profiling` requests one 48 GB, compute-capability 8.9+ GPU for Nsight work. They render documented `brev search --json` and `brev create --dry-run` commands, not an undocumented provider API.
+Use the direct `brev` commands in [`infra/brev/AGENTS.md`](infra/brev/AGENTS.md) for fundamentals and profiling. They document qualifying hardware, manual price caps, dry-run-first creates, and runtime limits without a custom control plane.
 
 ## Validate an approved VM
 
@@ -34,4 +33,4 @@ infra/brev/scripts/watchdog INSTANCE 120 --confirm-watchdog
 infra/brev/scripts/smoke INSTANCE
 ```
 
-The smoke checks host CUDA, Docker GPU visibility, NGC PyTorch CUDA, `nvcc`, `ncu`, `nsys`, PyTorch CUDA, source sync, and the Lecture 001 PyTorch square exercise. Stop with `infra/brev/scripts/brevctl stop INSTANCE`; delete only with `infra/brev/scripts/brevctl delete INSTANCE --confirm` after saving ignored billing evidence.
+The smoke checks host CUDA, Docker GPU visibility, NGC PyTorch CUDA, `nvcc`, `ncu`, `nsys`, PyTorch CUDA, source sync, and the Lecture 001 PyTorch square exercise. Stop with `brev stop INSTANCE`; delete with `brev delete INSTANCE` after saving ignored billing evidence.

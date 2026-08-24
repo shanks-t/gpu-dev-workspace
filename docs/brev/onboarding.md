@@ -8,20 +8,11 @@ This is the supported GPU workspace route: a Brev **VM** provides managed SSH an
 brew install brevdev/homebrew-brev/brev
 brev --version
 brev login
-infra/brev/scripts/brevctl search fundamentals
-infra/brev/scripts/brevctl create fundamentals
+brev search --json --min-vram 16 --min-capability 8.0 --min-disk 100 --max-boot-time 7 --stoppable --sort price
+brev create gpu-fundamentals --min-vram 16 --min-capability 8.0 --min-disk 100 --max-boot-time 7 --stoppable --sort price --dry-run
 ```
 
-`brevctl` requires Brev CLI v0.6.334 or newer and checks authentication with `brev list` for live commands. Its default create flow prints a documented `brev create --dry-run` command only. Review a result manually and select no option above the profile `max_hourly_price_usd`.
-
-Profiles under `infra/brev/profiles/` are the repository’s Terraform-like desired state, not Terraform, Pulumi, or a Brev control API. Safe JSON overrides are explicit:
-
-```sh
-infra/brev/scripts/brevctl plan fundamentals --set disk_gb=150
-infra/brev/scripts/brevctl create fundamentals --set provider_preferences='["nebius"]'
-```
-
-An override needs `--allow-price-increase` and `--confirm-create` before a live create command is printed. The profile retains its price, boot-time, and runtime gates.
+Require Brev CLI v0.6.334 or newer and authenticate with `brev login`. Review dry-run results manually; do not select a fundamentals result above $1.50/hour. The hardware targets, price ceilings, and deadline rules live in [`infra/brev/AGENTS.md`](../../infra/brev/AGENTS.md), not in a custom provisioner.
 
 ## Approved live session
 

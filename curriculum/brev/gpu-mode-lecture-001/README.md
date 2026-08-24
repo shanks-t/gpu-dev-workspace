@@ -9,7 +9,7 @@ and license are recorded in [UPSTREAM.md](UPSTREAM.md).
 
 ## Prerequisites
 
-Use the `profiling` Brev profile and the upstream NVIDIA NGC PyTorch workload.
+Use the profiling target in `infra/brev/AGENTS.md` and the upstream NVIDIA NGC PyTorch workload.
 The host VM owns SSH and the synchronized workspace; the container provides
 CUDA, PyTorch, and the Nsight tools. See [`docs/brev/onboarding.md`](../../../docs/brev/onboarding.md).
 
@@ -18,7 +18,7 @@ CUDA, PyTorch, and the Nsight tools. See [`docs/brev/onboarding.md`](../../../do
 From the repository root on the local machine:
 
 ```sh
-infra/brev/scripts/brevctl create profiling
+brev create gpu-profiling --min-vram 48 --min-capability 8.9 --min-disk 200 --max-boot-time 10 --stoppable --sort price --dry-run
 infra/brev/scripts/sync-source gpu-profiling
 infra/brev/scripts/smoke gpu-profiling
 ```
@@ -27,18 +27,17 @@ At the end of a session, stop compute. `/home/ubuntu/workspace` persists
 between Brev stops, but capacity can be unavailable when an instance restarts:
 
 ```sh
-infra/brev/scripts/brevctl stop gpu-profiling
+brev stop gpu-profiling
 ```
 
-When the exercise is complete, delete the test instance with the explicit
-confirmation required by `brevctl`.
+When the exercise is complete, delete the test instance with `brev delete gpu-profiling`.
 
 ## Verify the environment
 
 Open a shell on the VM, then enter this directory:
 
 ```sh
-infra/brev/scripts/brevctl shell gpu-profiling
+brev shell gpu-profiling
 cd /home/ubuntu/workspace/curriculum/brev/gpu-mode-lecture-001
 python -c 'import matplotlib, numba, torch, transformers, triton; assert torch.cuda.is_available(); print(torch.cuda.get_device_name())'
 nvcc --version
