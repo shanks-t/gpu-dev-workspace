@@ -1,0 +1,12 @@
+{
+  "lsp": {
+    "basedpyright": {
+      "settings": {
+        "basedpyright.analysis": {
+          "diagnosticMode": "workspace",
+          "useLibraryCodeForTypes": true
+        }
+      }
+    }
+  }
+}
