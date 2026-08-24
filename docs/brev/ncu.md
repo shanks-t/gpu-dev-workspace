@@ -72,6 +72,24 @@ open -a 'NVIDIA Nsight Compute' \
   curriculum/gpu-mode-lecture-001/artifacts/triton-square-ncu.ncu-rep
 ```
 
+### Install the macOS report viewer
+
+The `.ncu-rep` file is a binary Nsight Compute report, so view it with the
+Nsight Compute desktop UI rather than a text editor. Download the current
+macOS installer from NVIDIA's [Nsight Compute get-started page](https://developer.nvidia.com/tools-overview/nsight-compute/get-started):
+
+1. Select **MacOS-arm64** for an Apple Silicon Mac, or **MacOS-x86_64** for an
+   Intel Mac.
+2. Open the downloaded installer and move **NVIDIA Nsight Compute** to
+   Applications when prompted.
+3. Run the `open -a` command above, or double-click the `.ncu-rep` file in
+   Finder and choose **NVIDIA Nsight Compute**.
+
+The report was captured with Nsight Compute 2024.2.1 in the NGC container.
+Install that version or a newer compatible desktop release when possible. In
+the UI, select `square_kernel_0d1d234`, then begin with **Speed of Light**,
+**Memory Workload Analysis**, **Launch Statistics**, and **Occupancy**.
+
 ## Finish
 
 Stop the VM when the reports are copied. The watchdog is only a backup.
