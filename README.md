@@ -14,6 +14,11 @@ The complete image is defined in `images/lecture-full/`. Build it locally with
 when you intend to publish. Copy the returned digest into a local configuration
 before creating a Pod.
 
+The **Lecture-full GPU image** GitHub Actions workflow is the preferred
+publisher: it builds Linux AMD64 and publishes a versioned tag plus a
+commit-specific tag to GHCR. Record the published digest, never a mutable tag,
+in the local workspace configuration.
+
 ## Configure a workspace
 
 Configurations are JSON and are the source of truth for GPU count/type, data

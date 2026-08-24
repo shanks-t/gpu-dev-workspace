@@ -1,13 +1,6 @@
-name: GPU development image
+name: Lecture-full GPU image
 
 on:
-  push:
-    branches: [main]
-    tags: ["image-v*"]
-    paths:
-      - ".dockerignore"
-      - ".github/workflows/gpu-image.yml"
-      - "image/**"
   workflow_dispatch:
 
 permissions:
@@ -16,6 +9,7 @@ permissions:
 
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/gpu-dev-workspace
+  IMAGE_DIRECTORY: images/lecture-full
 
 jobs:
   build-test-push:
@@ -37,13 +31,9 @@ jobs:
         id: version
         shell: bash
         run: |
-          version=$(<image/VERSION)
+          version=$(<"$IMAGE_DIRECTORY/VERSION")
           if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "image/VERSION must contain a semantic version" >&2
-            exit 1
-          fi
-          if [[ "$GITHUB_REF_TYPE" == tag && "$GITHUB_REF_NAME" != "image-v$version" ]]; then
-            echo "tag $GITHUB_REF_NAME does not match image-v$version" >&2
+            echo "$IMAGE_DIRECTORY/VERSION must contain a semantic version" >&2
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
@@ -62,30 +52,22 @@ jobs:
         id: tags
         shell: bash
         run: |
-          tags="$IMAGE_NAME:sha-$GITHUB_SHA"
-          if [[ "$GITHUB_REF_TYPE" == tag ]]; then
-            tags="$tags"$'\n'"$IMAGE_NAME:${{ steps.version.outputs.version }}"
-          fi
+          tags="$IMAGE_NAME:lecture-full-sha-$GITHUB_SHA"
+          tags="$tags"$'\n'"$IMAGE_NAME:lecture-full-v${{ steps.version.outputs.version }}"
           {
             echo 'value<<EOF'
             echo "$tags"
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
-      # BuildKit publishes only after every Dockerfile step, including the native
-      # CUDA compile check, has succeeded. Direct push avoids loading a second
-      # uncompressed copy of this large image into the runner's Docker daemon.
       - name: Build, test, and publish image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: image/Dockerfile
+          context: ${{ env.IMAGE_DIRECTORY }}
+          file: ${{ env.IMAGE_DIRECTORY }}/Dockerfile
           platforms: linux/amd64
           push: true
           tags: ${{ steps.tags.outputs.value }}
-          build-args: |
-            IMAGE_VERSION=${{ steps.version.outputs.version }}
-            IMAGE_REVISION=${{ github.sha }}
-            VERIFY_CUDA_COMPILE=true
           cache-from: type=gha
+          cache-to: type=gha,mode=max
           provenance: mode=max
