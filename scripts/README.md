@@ -10,7 +10,7 @@ Opens Brave's trace viewer and reveals a local trace artifact in Finder. The
 viewer requires a file-picker or drag-and-drop action, so drag the selected
 artifact into the `brave://tracing/` tab after the script runs.
 
-The artifact must already be on local machine. For a trace created on the Brev VM,
+The artifact must already be on local machine. For a [trace created on the Brev VM](curriculum/gpu-mode-lecture-001/pt_profiler.py),
 copy it down first:
 
 ```sh
