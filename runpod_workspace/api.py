@@ -59,7 +59,8 @@ def request(method: str, path: str, body: dict[str, Any] | None = None) -> Any:
     )
     try:
         with urllib.request.urlopen(request_obj, timeout=30) as response:
-            return json.loads(response.read())
+            response_body = response.read()
+            return json.loads(response_body) if response_body else None
     except urllib.error.HTTPError as error:
         detail = error.read().decode(errors="replace")
         raise ApiError(f"RunPod {method} {path} failed ({error.code}): {detail}") from error

@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import MagicMock, patch
 
 from runpod_workspace.config import ConfigError, create_payload, network_volume_payload, validate
 from runpod_workspace.api import ApiError, status_summary
@@ -56,3 +57,12 @@ class ConfigTests(unittest.TestCase):
     def test_status_discloses_retained_network_volume(self):
         summary = status_summary({"id": "pod", "networkVolume": {"id": "volume", "size": 50}})
         self.assertIn("continues storage billing", summary["storage_notice"])
+
+    @patch("runpod_workspace.api.api_key", return_value="test-key")
+    @patch("runpod_workspace.api.urllib.request.urlopen")
+    def test_empty_delete_response_is_successful(self, urlopen, _api_key):
+        response = MagicMock()
+        response.read.return_value = b""
+        urlopen.return_value.__enter__.return_value = response
+        from runpod_workspace.api import request
+        self.assertIsNone(request("DELETE", "/pods/example"))
