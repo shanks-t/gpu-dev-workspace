@@ -14,7 +14,7 @@ the Brev VM.
    `.devcontainer/devcontainer.json`, which starts the repository's pinned NGC
    PyTorch compose service.
 4. Open `curriculum/brev/gpu-mode-lecture-001/pytorch_square.py` and choose
-   `/opt/conda/bin/python` if VS Code asks for an interpreter.
+   `/usr/bin/python` if VS Code asks for an interpreter.
 
 The workspace recommends the Python and Pylance extensions. Pylance is
 configured to index installed libraries and use their source for types, so
@@ -22,7 +22,7 @@ hovering `torch.square`, `torch.cuda.Event`, or `torch.profiler.profile` shows
 their signatures and available documentation.
 
 If hover information is absent after reopening, run **Python: Restart Language
-Server** and confirm that the selected interpreter is `/opt/conda/bin/python`,
+Server** and confirm that the selected interpreter is `/usr/bin/python`,
 not a host or local Python interpreter.
 
 ## Zed setup

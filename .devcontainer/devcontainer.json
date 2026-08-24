@@ -12,7 +12,7 @@
         "ms-python.vscode-pylance"
       ],
       "settings": {
-        "python.defaultInterpreterPath": "/opt/conda/bin/python",
+        "python.defaultInterpreterPath": "/usr/bin/python",
         "python.analysis.indexing": true,
         "python.analysis.languageServerMode": "full",
         "python.analysis.useLibraryCodeForTypes": true
