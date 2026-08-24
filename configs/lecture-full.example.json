@@ -1,0 +1,15 @@
+{
+  "name": "gpu-lecture-full",
+  "cloud_type": "SECURE",
+  "image": "ghcr.io/OWNER/gpu-dev-workspace@sha256:REPLACE_WITH_PUBLISHED_IMAGE_DIGEST",
+  "gpu_type_ids": ["NVIDIA GeForce RTX 4090", "NVIDIA GeForce RTX 3090"],
+  "gpu_count": 1,
+  "data_center_ids": ["REPLACE_WITH_NETWORK_VOLUME_DATA_CENTER"],
+  "container_disk_gb": 30,
+  "storage": {
+    "mode": "NETWORK_VOLUME",
+    "network_volume_id": "REPLACE_WITH_NETWORK_VOLUME_ID"
+  },
+  "public_ssh": true,
+  "interruptible": false
+}

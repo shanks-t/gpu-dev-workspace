@@ -12,7 +12,7 @@ class ConfigError(ValueError):
     """Raised when a workspace configuration is unsafe or incomplete."""
 
 
-REQUIRED = {"name", "cloud_type", "gpu_type_ids", "gpu_count", "image", "storage"}
+REQUIRED = {"name", "cloud_type", "gpu_type_ids", "gpu_count", "storage"}
 
 
 def load(path: str | Path, overrides: list[str] = ()) -> dict[str, Any]:
@@ -57,8 +57,14 @@ def validate(config: dict[str, Any]) -> None:
         raise ConfigError("gpu_count must be a positive integer")
     if not isinstance(config["gpu_type_ids"], list) or not config["gpu_type_ids"]:
         raise ConfigError("gpu_type_ids must be a non-empty list")
-    if not isinstance(config["image"], str) or "@sha256:" not in config["image"]:
+    image = config.get("image")
+    template_id = config.get("template_id")
+    if bool(image) == bool(template_id):
+        raise ConfigError("configure exactly one of image or template_id")
+    if image is not None and (not isinstance(image, str) or "@sha256:" not in image):
         raise ConfigError("image must be an immutable OCI reference containing @sha256:")
+    if template_id is not None and not isinstance(template_id, str):
+        raise ConfigError("template_id must be a string")
     storage = config["storage"]
     if not isinstance(storage, dict) or storage.get("mode") not in {"DISPOSABLE", "NETWORK_VOLUME"}:
         raise ConfigError("storage.mode must be DISPOSABLE or NETWORK_VOLUME")
@@ -87,13 +93,16 @@ def create_payload(config: dict[str, Any]) -> dict[str, Any]:
         "gpuTypeIds": config["gpu_type_ids"],
         "gpuCount": config["gpu_count"],
         "gpuTypePriority": config.get("gpu_type_priority", "availability"),
-        "imageName": config["image"],
         "containerDiskInGb": config.get("container_disk_gb", 20),
         "ports": ["22/tcp"],
         "supportPublicIp": True,
         "volumeMountPath": "/workspace",
         "interruptible": config.get("interruptible", False),
     }
+    if "image" in config:
+        payload["imageName"] = config["image"]
+    else:
+        payload["templateId"] = config["template_id"]
     if config.get("data_center_ids"):
         payload["dataCenterIds"] = config["data_center_ids"]
         payload["dataCenterPriority"] = config.get("data_center_priority", "availability")

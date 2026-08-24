@@ -26,3 +26,8 @@ class ConfigTests(unittest.TestCase):
         config = {**BASE, "image": "runpod/pytorch:latest"}
         with self.assertRaises(ConfigError):
             validate(config)
+
+    def test_template_is_an_alternative_to_project_image(self):
+        config = {key: value for key, value in BASE.items() if key != "image"}
+        config["template_id"] = "runpod-torch-v280"
+        self.assertEqual(create_payload(config)["templateId"], "runpod-torch-v280")
