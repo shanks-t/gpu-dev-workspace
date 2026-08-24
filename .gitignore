@@ -14,8 +14,11 @@ __pycache__/
 *.pyc
 .venv/
 .artifacts/
+# Keep lightweight, reviewable visual results and console logs.
 curriculum/**/artifacts/*
 !curriculum/**/artifacts/.gitkeep
+!curriculum/**/artifacts/*.png
+!curriculum/**/artifacts/*.log
 .gpu/
 **/.terraform/
 *.tfstate

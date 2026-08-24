@@ -1,0 +1,23 @@
+ Container compose-pytorch-run-d43f4bbb6cec Creating
+ Container compose-pytorch-run-d43f4bbb6cec Created
+==PROF== Connected to process 84 (/usr/bin/python3.10)
+==PROF== Profiling "square_kernel_0d1d234": 0%....50%....100% - 8 passes
+==PROF== Connected to process 129 (/usr/bin/python3.10)
+square() performance:
+          N      Triton  Torch (native)  Torch (compiled)
+0     256.0  154.566038      481.882344         39.766991
+1     384.0  231.849058      545.754326         54.857142
+2     512.0  348.595735      585.142849         68.266668
+3     640.0  401.568635      585.142842         89.255701
+4     768.0  323.368435      571.534884        111.455787
+..      ...         ...             ...               ...
+93  12160.0  621.597450      648.533303        638.981914
+94  12288.0  622.177234      643.561379        633.198054
+95  12416.0  620.800016      642.899686        632.662411
+96  12544.0  622.337963      645.350460        636.145827
+97  12672.0  622.894000      643.657118        631.088545
+
+[98 rows x 4 columns]
+==PROF== Disconnected from process 84
+==PROF== Disconnected from process 129
+==PROF== Report: /workspace/curriculum/gpu-mode-lecture-001/artifacts/triton-square-ncu.ncu-rep

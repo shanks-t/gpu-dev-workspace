@@ -1,0 +1,82 @@
+ Container compose-pytorch-run-ec5605148cc3 Creating
+ Container compose-pytorch-run-ec5605148cc3 Created
+==PROF== Connected to process 86 (/usr/bin/python3.10)
+==PROF== Profiling "square_kernel_optimized_0d1d2": 0%....50%....100% - 8 passes
+==PROF== Disconnected from process 86
+==PROF== Report: /workspace/curriculum/gpu-mode-lecture-001/artifacts/triton-square-optimized-ncu.ncu-rep
+[86] python3.10@127.0.0.1
+  square_kernel_optimized_0d1d2 (5562, 1, 1)x(128, 1, 1), Context 1, Stream 7, Device 0, CC 8.9
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ------------
+    Metric Name             Metric Unit Metric Value
+    ----------------------- ----------- ------------
+    DRAM Frequency                  Ghz         6.21
+    SM Frequency                    Mhz       791.30
+    Elapsed Cycles                cycle        19934
+    Memory Throughput                 %        81.29
+    DRAM Throughput                   %        81.29
+    Duration                         us        25.18
+    L1/TEX Cache Throughput           %        36.67
+    L2 Cache Throughput               %        42.73
+    SM Active Cycles              cycle     17652.24
+    Compute (SM) Throughput           %        19.27
+    ----------------------- ----------- ------------
+
+    INF   The kernel is utilizing greater than 80.0% of the available compute or memory performance of the device. To
+          further improve performance, work will likely need to be shifted from the most utilized to another unit.
+          Start by analyzing DRAM in the Memory Workload Analysis section.
+
+    Section: Launch Statistics
+    -------------------------------- --------------- ---------------
+    Metric Name                          Metric Unit    Metric Value
+    -------------------------------- --------------- ---------------
+    Block Size                                                   128
+    Function Cache Configuration                     CachePreferNone
+    Grid Size                                                   5562
+    Registers Per Thread             register/thread              16
+    Shared Memory Configuration Size           Kbyte           32.77
+    Driver Shared Memory Per Block       Kbyte/block            1.02
+    Dynamic Shared Memory Per Block       byte/block               0
+    Static Shared Memory Per Block        byte/block               0
+    # SMs                                         SM              58
+    Threads                                   thread          711936
+    Uses Green Context                                             0
+    Waves Per SM                                                7.99
+    -------------------------------- --------------- ---------------
+
+    Section: Occupancy
+    ------------------------------- ----------- ------------
+    Metric Name                     Metric Unit Metric Value
+    ------------------------------- ----------- ------------
+    Block Limit SM                        block           24
+    Block Limit Registers                 block           32
+    Block Limit Shared Mem                block           32
+    Block Limit Warps                     block           12
+    Theoretical Active Warps per SM        warp           48
+    Theoretical Occupancy                     %          100
+    Achieved Occupancy                        %        83.16
+    Achieved Active Warps Per SM           warp        39.92
+    ------------------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 16.84%
+          The difference between calculated theoretical (100.0%) and measured achieved occupancy (83.2%) can be the
+          result of warp scheduling overheads or workload imbalances during the kernel execution. Load imbalances can
+          occur between warps within a block as well as across blocks of the same kernel. See the CUDA Best Practices
+          Guide (https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html#occupancy) for more details on
+          optimizing occupancy.
+
+    Section: GPU and Memory Workload Distribution
+    -------------------------- ----------- ------------
+    Metric Name                Metric Unit Metric Value
+    -------------------------- ----------- ------------
+    Average DRAM Active Cycles       cycle    127226.67
+    Total DRAM Elapsed Cycles        cycle       939008
+    Average L1 Active Cycles         cycle     17652.24
+    Total L1 Elapsed Cycles          cycle      1154722
+    Average L2 Active Cycles         cycle     17775.42
+    Total L2 Elapsed Cycles          cycle       496368
+    Average SM Active Cycles         cycle     17652.24
+    Total SM Elapsed Cycles          cycle      1154722
+    Average SMSP Active Cycles       cycle     17555.50
+    Total SMSP Elapsed Cycles        cycle      4618888
+    -------------------------- ----------- ------------

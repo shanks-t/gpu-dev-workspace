@@ -1,0 +1,100 @@
+ Container compose-pytorch-run-1f373462b12c Creating
+ Container compose-pytorch-run-1f373462b12c Created
+==PROF== Connected to process 84 (/usr/bin/python3.10)
+==PROF== Profiling "square_kernel_0d1d234": 0%....50%....100% - 8 passes
+==PROF== Connected to process 128 (/usr/bin/python3.10)
+square() performance:
+          N      Triton  Torch (native)  Torch (compiled)
+0     256.0  182.044442      190.511628        210.051289
+1     384.0  219.428568      215.578943        211.862064
+2     512.0  207.392411      210.051289        207.392411
+3     640.0  213.333326      217.872334        213.333326
+4     768.0  217.486722      221.405403        223.418180
+..      ...         ...             ...               ...
+93  12160.0  229.908424      234.409646        238.577565
+94  12288.0  229.548160      232.809939        236.877115
+95  12416.0  229.527437      232.890980        236.847695
+96  12544.0  229.507141      233.105697        237.379072
+97  12672.0  229.617221      232.247420        236.034733
+
+[98 rows x 4 columns]
+==PROF== Disconnected from process 84
+==PROF== Disconnected from process 128
+==PROF== Report: /workspace/curriculum/gpu-mode-lecture-001/artifacts/triton-square-ncu-l4.ncu-rep
+[84] python3.10@127.0.0.1
+  square_kernel_0d1d234 (1823, 1, 1)x(128, 1, 1), Context 1, Stream 7, Device 0, CC 8.9
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ------------
+    Metric Name             Metric Unit Metric Value
+    ----------------------- ----------- ------------
+    DRAM Frequency                  Ghz         6.22
+    SM Frequency                    Mhz       792.35
+    Elapsed Cycles                cycle        22950
+    Memory Throughput                 %        76.82
+    DRAM Throughput                   %        76.82
+    Duration                         us        28.96
+    L1/TEX Cache Throughput           %        44.52
+    L2 Cache Throughput               %        54.43
+    SM Active Cycles              cycle     20144.03
+    Compute (SM) Throughput           %        16.94
+    ----------------------- ----------- ------------
+
+    OPT   Memory is more heavily utilized than Compute: Look at the Memory Workload Analysis section to identify the
+          DRAM bottleneck. Check memory replay (coalescing) metrics to make sure you're efficiently utilizing the
+          bytes transferred. Also consider whether it is possible to do more work per memory access (kernel fusion) or
+          whether there are values you can (re)compute.
+
+    Section: Launch Statistics
+    -------------------------------- --------------- ---------------
+    Metric Name                          Metric Unit    Metric Value
+    -------------------------------- --------------- ---------------
+    Block Size                                                   128
+    Function Cache Configuration                     CachePreferNone
+    Grid Size                                                   1823
+    Registers Per Thread             register/thread              20
+    Shared Memory Configuration Size           Kbyte           32.77
+    Driver Shared Memory Per Block       Kbyte/block            1.02
+    Dynamic Shared Memory Per Block       byte/block               0
+    Static Shared Memory Per Block        byte/block               0
+    # SMs                                         SM              58
+    Threads                                   thread          233344
+    Uses Green Context                                             0
+    Waves Per SM                                                2.62
+    -------------------------------- --------------- ---------------
+
+    Section: Occupancy
+    ------------------------------- ----------- ------------
+    Metric Name                     Metric Unit Metric Value
+    ------------------------------- ----------- ------------
+    Block Limit SM                        block           24
+    Block Limit Registers                 block           21
+    Block Limit Shared Mem                block           32
+    Block Limit Warps                     block           12
+    Theoretical Active Warps per SM        warp           48
+    Theoretical Occupancy                     %          100
+    Achieved Occupancy                        %        84.05
+    Achieved Active Warps Per SM           warp        40.35
+    ------------------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 15.95%
+          The difference between calculated theoretical (100.0%) and measured achieved occupancy (84.1%) can be the
+          result of warp scheduling overheads or workload imbalances during the kernel execution. Load imbalances can
+          occur between warps within a block as well as across blocks of the same kernel. See the CUDA Best Practices
+          Guide (https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html#occupancy) for more details on
+          optimizing occupancy.
+
+    Section: GPU and Memory Workload Distribution
+    -------------------------- ----------- ------------
+    Metric Name                Metric Unit Metric Value
+    -------------------------- ----------- ------------
+    Average DRAM Active Cycles       cycle    138445.33
+    Total DRAM Elapsed Cycles        cycle      1081344
+    Average L1 Active Cycles         cycle     20144.03
+    Total L1 Elapsed Cycles          cycle      1377764
+    Average L2 Active Cycles         cycle     21304.12
+    Total L2 Elapsed Cycles          cycle       574968
+    Average SM Active Cycles         cycle     20144.03
+    Total SM Elapsed Cycles          cycle      1377764
+    Average SMSP Active Cycles       cycle     20361.45
+    Total SMSP Elapsed Cycles        cycle      5511056
+    -------------------------- ----------- ------------
