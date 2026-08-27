@@ -167,7 +167,7 @@ function renderUnassigned() {
   unassigned.hidden = false;
   const title = document.createElement('p');
   title.className = 'unassigned-title';
-  title.textContent = `${missing.length} data element${missing.length === 1 ? '' : 's'} in this view have no launched thread`;
+  title.textContent = `Undercoverage: ${missing.length} data element${missing.length === 1 ? '' : 's'} in this view have no launched thread`;
   const detail = document.createElement('p');
   detail.className = 'unassigned-detail';
   detail.textContent = 'Increase gridDim, blockDim, or use a grid-stride loop to cover them.';
