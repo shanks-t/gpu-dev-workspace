@@ -95,33 +95,45 @@ function cellLabel(coordinate) {
 }
 
 function blockColor(blockIndex) {
-  // Keep a block's visual identity stable as the view gains dimensions: x
-  // distinguishes blocks along a row and y distinguishes block rows. z is
-  // represented by the selected layer in the stack rather than recoloring a plane.
-  return `hsl(${(blockIndex.x * 47 + blockIndex.y * 91) % 360} 65% 45%)`;
+  // A color represents one specific CUDA block, including its z coordinate.
+  // The coordinate label remains the source of truth once this palette repeats.
+  return `hsl(${(blockIndex.x * 47 + blockIndex.y * 91 + blockIndex.z * 137) % 360} 65% 42%)`;
 }
 
 function renderMap() {
   map.replaceChildren();
   const currentAxes = axes();
-  const width = state.blockDim.x * state.gridDim.x;
-  const height = state.dimensions === 1 ? 1 : state.blockDim.y * state.gridDim.y;
-  map.style.setProperty('--columns', width);
+  const blockRows = state.dimensions === 1 ? 1 : state.gridDim.y;
+  const threadRows = state.dimensions === 1 ? 1 : state.blockDim.y;
+  map.style.setProperty('--block-columns', state.gridDim.x);
   map.classList.toggle('one-dimensional', state.dimensions === 1);
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const coordinate = { x, y, z: state.dimensions === 3 ? state.slice : 0 };
-      const { blockIndex, threadIndex } = coordinateToBlockAndThread(coordinate, state.blockDim, currentAxes);
-      const valid = isInBounds(coordinate, state.shape, currentAxes);
-      const chosen = currentAxes.every((axis) => coordinate[axis] === state.selected[axis]);
-      const button = document.createElement('button');
-      button.type = 'button'; button.className = `cell${valid ? '' : ' outside'}${chosen ? ' selected' : ''}`;
-      button.style.setProperty('--block-color', blockColor(blockIndex));
-      button.textContent = cellLabel(coordinate);
-      button.title = `blockIdx ${formatTuple(blockIndex, currentAxes)}, threadIdx ${formatTuple(threadIndex, currentAxes)}`;
-      button.setAttribute('aria-label', `data coordinate ${formatTuple(coordinate, currentAxes)}`);
-      button.addEventListener('click', () => { state.selected = coordinate; render(); });
-      map.append(button);
+  for (let by = 0; by < blockRows; by += 1) {
+    for (let bx = 0; bx < state.gridDim.x; bx += 1) {
+      const blockIndex = { x: bx, y: by, z: state.dimensions === 3 ? Math.floor(state.slice / state.blockDim.z) : 0 };
+      const region = document.createElement('section');
+      region.className = 'block-region';
+      region.style.setProperty('--block-color', blockColor(blockIndex));
+      region.style.setProperty('--thread-columns', state.blockDim.x);
+      region.setAttribute('aria-label', `CUDA block ${formatTuple(blockIndex, currentAxes)}`);
+      const label = document.createElement('p');
+      label.className = 'block-label'; label.textContent = `blockIdx ${formatTuple(blockIndex, currentAxes)}`;
+      region.append(label);
+      for (let ty = 0; ty < threadRows; ty += 1) {
+        for (let tx = 0; tx < state.blockDim.x; tx += 1) {
+          const coordinate = { x: bx * state.blockDim.x + tx, y: by * state.blockDim.y + ty, z: state.dimensions === 3 ? state.slice : 0 };
+          const threadIndex = { x: tx, y: ty, z: state.dimensions === 3 ? coordinate.z % state.blockDim.z : 0 };
+          const valid = isInBounds(coordinate, state.shape, currentAxes);
+          const chosen = currentAxes.every((axis) => coordinate[axis] === state.selected[axis]);
+          const button = document.createElement('button');
+          button.type = 'button'; button.className = `cell${valid ? '' : ' outside'}${chosen ? ' selected' : ''}`;
+          button.textContent = cellLabel(coordinate);
+          button.title = `blockIdx ${formatTuple(blockIndex, currentAxes)}, threadIdx ${formatTuple(threadIndex, currentAxes)}`;
+          button.setAttribute('aria-label', `data coordinate ${formatTuple(coordinate, currentAxes)}`);
+          button.addEventListener('click', () => { state.selected = coordinate; render(); });
+          region.append(button);
+        }
+      }
+      map.append(region);
     }
   }
 }
