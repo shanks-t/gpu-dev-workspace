@@ -20,6 +20,7 @@ const sliceControl = document.querySelector('#slice-control');
 const sliceInput = document.querySelector('#z-slice');
 const sliceOutput = document.querySelector('#z-output');
 const sliceStack = document.querySelector('#slice-stack');
+const unassigned = document.querySelector('#unassigned');
 
 function axes() { return activeAxes(state.dimensions); }
 function clamp(value) { return Math.max(1, Math.min(32, Number(value) || 1)); }
@@ -45,7 +46,8 @@ function updateInputs() {
   inputGroup(gridInputs, 'B', state.gridDim, 'gridDim');
   document.querySelectorAll('#dimension-picker button').forEach((button) => button.setAttribute('aria-pressed', String(Number(button.dataset.dimensions) === state.dimensions)));
   sliceControl.hidden = state.dimensions < 3;
-  sliceInput.max = String(Math.max(0, state.blockDim.z * state.gridDim.z - 1));
+  const sliceDepth = Math.max(state.blockDim.z * state.gridDim.z, state.shape.z);
+  sliceInput.max = String(Math.max(0, sliceDepth - 1));
   state.slice = Math.min(state.slice, Number(sliceInput.max)); sliceInput.value = String(state.slice); sliceOutput.textContent = String(state.slice);
 }
 
@@ -54,7 +56,9 @@ function renderSummary() {
   const totalThreads = product(state.blockDim, currentAxes) * product(state.gridDim, currentAxes);
   const dataElements = product(state.shape, currentAxes);
   const launchedShape = Object.fromEntries(currentAxes.map((axis) => [axis, state.blockDim[axis] * state.gridDim[axis]]));
-  summary.innerHTML = `<div><span>Data elements</span><strong>${dataElements}</strong></div><div><span>Threads/block</span><strong>${product(state.blockDim, currentAxes)}</strong></div><div><span>Blocks/grid</span><strong>${product(state.gridDim, currentAxes)}</strong></div><div><span>Launched threads</span><strong>${totalThreads}</strong></div><div><span>Covered shape</span><strong>${formatTuple(launchedShape, currentAxes)}</strong></div>`;
+  const coveredElements = currentAxes.reduce((total, axis) => total * Math.min(state.shape[axis], launchedShape[axis]), 1);
+  const unassignedElements = dataElements - coveredElements;
+  summary.innerHTML = `<div><span>Data elements</span><strong>${dataElements}</strong></div><div><span>Threads/block</span><strong>${product(state.blockDim, currentAxes)}</strong></div><div><span>Blocks/grid</span><strong>${product(state.gridDim, currentAxes)}</strong></div><div><span>Launched threads</span><strong>${totalThreads}</strong></div><div><span>Covered shape</span><strong>${formatTuple(launchedShape, currentAxes)}</strong></div><div class="${unassignedElements ? 'warning' : ''}"><span>Unassigned data</span><strong>${unassignedElements}</strong></div>`;
 }
 
 function visibleSlices(total, selected) {
@@ -105,8 +109,14 @@ function renderMap() {
   const currentAxes = axes();
   const blockRows = state.dimensions === 1 ? 1 : state.gridDim.y;
   const threadRows = state.dimensions === 1 ? 1 : state.blockDim.y;
+  const launchedDepth = state.blockDim.z * state.gridDim.z;
   map.style.setProperty('--block-columns', state.gridDim.x);
   map.classList.toggle('one-dimensional', state.dimensions === 1);
+  if (state.dimensions === 3 && state.slice >= launchedDepth) {
+    const empty = document.createElement('p');
+    empty.className = 'empty-launch'; empty.textContent = `No CUDA blocks were launched for z = ${state.slice}.`;
+    map.append(empty); return;
+  }
   for (let by = 0; by < blockRows; by += 1) {
     for (let bx = 0; bx < state.gridDim.x; bx += 1) {
       const blockIndex = { x: bx, y: by, z: state.dimensions === 3 ? Math.floor(state.slice / state.blockDim.z) : 0 };
@@ -138,6 +148,44 @@ function renderMap() {
   }
 }
 
+function renderUnassigned() {
+  const currentAxes = axes();
+  const zValues = state.dimensions === 3 ? [state.slice] : [0];
+  const missing = [];
+  zValues.forEach((z) => {
+    if (state.dimensions === 3 && z >= state.shape.z) return;
+    const maxY = state.dimensions === 1 ? 1 : state.shape.y;
+    for (let y = 0; y < maxY; y += 1) {
+      for (let x = 0; x < state.shape.x; x += 1) {
+        const coordinate = { x, y, z };
+        if (!inLaunchedGrid(coordinate)) missing.push(coordinate);
+      }
+    }
+  });
+  unassigned.replaceChildren();
+  if (!missing.length) { unassigned.hidden = true; return; }
+  unassigned.hidden = false;
+  const title = document.createElement('p');
+  title.className = 'unassigned-title';
+  title.textContent = `${missing.length} data element${missing.length === 1 ? '' : 's'} in this view have no launched thread`;
+  const detail = document.createElement('p');
+  detail.className = 'unassigned-detail';
+  detail.textContent = 'Increase gridDim, blockDim, or use a grid-stride loop to cover them.';
+  const cells = document.createElement('div');
+  cells.className = 'unassigned-cells'; cells.style.setProperty('--unassigned-columns', Math.min(state.shape.x, 16));
+  const shown = missing.slice(0, 160);
+  shown.forEach((coordinate) => {
+    const cell = document.createElement('span');
+    cell.textContent = formatTuple(coordinate, currentAxes);
+    cell.title = `No launched thread maps to data coordinate ${formatTuple(coordinate, currentAxes)}`;
+    cells.append(cell);
+  });
+  if (missing.length > shown.length) {
+    const more = document.createElement('span'); more.className = 'more-missing'; more.textContent = `+${missing.length - shown.length} more`; cells.append(more);
+  }
+  unassigned.append(title, detail, cells);
+}
+
 function renderDetails() {
   const currentAxes = axes();
   const { blockIndex, threadIndex } = coordinateToBlockAndThread(state.selected, state.blockDim, currentAxes);
@@ -148,7 +196,7 @@ function renderDetails() {
   codeExample.textContent = cudaCode(state.dimensions);
 }
 
-function render() { updateInputs(); renderSummary(); renderSliceStack(); renderMap(); renderDetails(); }
+function render() { updateInputs(); renderSummary(); renderSliceStack(); renderMap(); renderUnassigned(); renderDetails(); }
 
 document.querySelector('#dimension-picker').addEventListener('click', (event) => {
   const button = event.target.closest('button[data-dimensions]');

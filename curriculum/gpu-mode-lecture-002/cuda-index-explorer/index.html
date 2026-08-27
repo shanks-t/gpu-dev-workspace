@@ -50,7 +50,8 @@
           </div>
           <div id="slice-stack" class="slice-stack" aria-label="3D array slice stack"></div>
           <div id="map" class="map" role="grid" aria-label="Array elements grouped by their CUDA blocks"></div>
-          <p class="map-key"><span class="key valid"></span>in bounds <span class="key selected"></span>selected thread <span class="key outside"></span>launched but outside N</p>
+          <section id="unassigned" class="unassigned" aria-live="polite"></section>
+          <p class="map-key"><span class="key valid"></span>in bounds <span class="key selected"></span>selected thread <span class="key outside"></span>launched but outside N <span class="key missing"></span>data with no launched thread</p>
         </section>
 
         <aside class="inspection" aria-live="polite">
