@@ -38,6 +38,10 @@
       </section>
 
       <section class="summary" aria-label="Coverage summary" id="summary"></section>
+      <details class="code-panel">
+        <summary>Show kernel, launch, and array layouts</summary>
+        <pre id="code-example"></pre>
+      </details>
       <section class="workspace">
         <section class="visual-panel" aria-labelledby="map-title">
           <div class="section-heading">
@@ -52,16 +56,11 @@
           <p id="coverage-statement" class="coverage-statement"></p>
           <section id="unassigned" class="unassigned" aria-live="polite"></section>
           <div id="map" class="map" role="grid" aria-label="Array elements grouped by their CUDA blocks"></div>
+          <section class="selected-thread-panel" aria-live="polite">
+            <p class="eyebrow">Selected thread</p>
+            <div id="selected-details"></div>
+          </section>
         </section>
-
-        <aside class="inspection" aria-live="polite">
-          <p class="eyebrow">Selected thread</p>
-          <div id="selected-details"></div>
-          <details class="code-wrap">
-            <summary>Show kernel, launch, and array layouts</summary>
-            <pre id="code-example"></pre>
-          </details>
-        </aside>
       </section>
       <section class="coverage-key" aria-labelledby="coverage-key-title">
         <div class="coverage-key-heading">
