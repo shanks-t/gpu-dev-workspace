@@ -28,8 +28,6 @@ legend { padding: 0 3px; color: #26334c; font-size: .84rem; font-weight: 700; }
 .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 285px; gap: 18px; align-items: stretch; }
 .visual-panel, .inspection { border: 1px solid #d9e0ed; border-radius: 14px; background: #fff; padding: 20px; }
 .section-heading { display: flex; align-items: start; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
-.slice-control { display: flex; align-items: center; gap: 7px; color: #52627e; font-size: .8rem; font-weight: 700; white-space: nowrap; }
-.slice-control input { width: 75px; accent-color: #476cf3; }
 .slice-stack { margin: -5px 0 14px; padding: 10px 12px; border-left: 3px solid #476cf3; background: #f5f8ff; }
 .stack-label { margin: 0 0 8px; color: #40516f; font-size: .78rem; font-weight: 700; }
 .stack-layers { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }

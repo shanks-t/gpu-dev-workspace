@@ -16,9 +16,6 @@ const gridInputs = document.querySelector('#grid-inputs');
 const summary = document.querySelector('#summary');
 const details = document.querySelector('#selected-details');
 const codeExample = document.querySelector('#code-example');
-const sliceControl = document.querySelector('#slice-control');
-const sliceInput = document.querySelector('#z-slice');
-const sliceOutput = document.querySelector('#z-output');
 const sliceStack = document.querySelector('#slice-stack');
 const unassigned = document.querySelector('#unassigned');
 
@@ -45,10 +42,8 @@ function updateInputs() {
   inputGroup(blockInputs, 'T', state.blockDim, 'blockDim');
   inputGroup(gridInputs, 'B', state.gridDim, 'gridDim');
   document.querySelectorAll('#dimension-picker button').forEach((button) => button.setAttribute('aria-pressed', String(Number(button.dataset.dimensions) === state.dimensions)));
-  sliceControl.hidden = state.dimensions < 3;
   const sliceDepth = Math.max(state.blockDim.z * state.gridDim.z, state.shape.z);
-  sliceInput.max = String(Math.max(0, sliceDepth - 1));
-  state.slice = Math.min(state.slice, Number(sliceInput.max)); sliceInput.value = String(state.slice); sliceOutput.textContent = String(state.slice);
+  state.slice = Math.min(state.slice, sliceDepth - 1);
 }
 
 function renderSummary() {
@@ -212,5 +207,4 @@ document.querySelector('.controls').addEventListener('input', (event) => {
   render();
 });
 
-sliceInput.addEventListener('input', () => { state.slice = Number(sliceInput.value); if (state.dimensions === 3) state.selected.z = state.slice; render(); });
 render();
