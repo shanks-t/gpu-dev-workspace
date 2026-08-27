@@ -20,6 +20,7 @@ We may use external material as learning references, including:
 
 - [CUDA MODE Lecture 001](https://github.com/gpu-mode/lectures/tree/main/lecture_001)
 - [OLCF CUDA Training Series exercises](https://github.com/olcf/cuda-training-series/tree/master/exercises)
+- [Programming Massively Parallel Processors](https://shop.elsevier.com/books/programming-massively-parallel-processors/hwu/978-0-443-43900-1), by Hwu, Kirk, and Hajj. We are working through this book; use its chapter topics to locate relevant reference materials and include the source links in learner notes or exercises.
 
 When using a reference, write our own exercises, notes, tests, and solutions in
 this repository. Do not copy or vendor upstream source, generated artifacts, or
