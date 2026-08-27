@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CUDA Index Explorer</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="page-shell">
+      <header>
+        <p class="eyebrow">CUDA fundamentals</p>
+        <h1>Index explorer</h1>
+        <p class="lede">Map a logical 1D, 2D, or 3D array onto a CUDA grid. Change the launch shape, then select a thread to trace every index it owns.</p>
+      </header>
+
+      <section class="controls" aria-label="CUDA launch configuration">
+        <fieldset>
+          <legend>Array dimensions</legend>
+          <div class="segmented" id="dimension-picker">
+            <button type="button" data-dimensions="1" aria-pressed="false">1D</button>
+            <button type="button" data-dimensions="2" aria-pressed="true">2D</button>
+            <button type="button" data-dimensions="3" aria-pressed="false">3D</button>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Array size <span class="subtle">(N per axis)</span></legend>
+          <div class="axis-inputs" id="array-inputs"></div>
+        </fieldset>
+        <fieldset>
+          <legend>Threads per block <span class="subtle">(blockDim)</span></legend>
+          <div class="axis-inputs" id="block-inputs"></div>
+        </fieldset>
+        <fieldset>
+          <legend>Blocks per grid <span class="subtle">(gridDim)</span></legend>
+          <div class="axis-inputs" id="grid-inputs"></div>
+        </fieldset>
+      </section>
+
+      <section class="summary" aria-label="Launch summary" id="summary"></section>
+
+      <section class="workspace">
+        <section class="visual-panel" aria-labelledby="map-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Logical data space</p>
+              <h2 id="map-title">Thread-to-data map</h2>
+            </div>
+            <label class="slice-control" id="slice-control">z slice <input id="z-slice" type="range" min="0" max="0" value="0"><output id="z-output">0</output></label>
+          </div>
+          <div id="map" class="map" role="grid" aria-label="Array elements grouped by their CUDA blocks"></div>
+          <p class="map-key"><span class="key valid"></span>in bounds <span class="key selected"></span>selected thread <span class="key outside"></span>launched but outside N</p>
+        </section>
+
+        <aside class="inspection" aria-live="polite">
+          <p class="eyebrow">Selected thread</p>
+          <div id="selected-details"></div>
+          <div class="code-wrap">
+            <p class="eyebrow">Equivalent CUDA</p>
+            <pre id="code-example"></pre>
+          </div>
+        </aside>
+      </section>
+    </main>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
