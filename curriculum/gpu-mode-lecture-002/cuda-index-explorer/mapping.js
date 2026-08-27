@@ -41,7 +41,7 @@ function formatTuple(values, axes) {
   return `(${axes.map((axis) => values[axis]).join(', ')})`;
 }
 
-function cudaCode(dimensions) {
+function cudaCode(dimensions, blockDim, gridDim) {
   const coordinateLines = {
     x: 'int x = blockIdx.x * blockDim.x + threadIdx.x;',
     y: 'int y = blockIdx.y * blockDim.y + threadIdx.y;',
@@ -49,12 +49,29 @@ function cudaCode(dimensions) {
   };
   const axes = activeAxes(dimensions);
   const guard = axes.map((axis) => `${axis} < n${axis}`).join(' && ');
+  const sizeArguments = axes.map((axis) => `int n${axis}`).join(', ');
+  const launchArguments = axes.map((axis) => `n${axis}`).join(', ');
   const linear = dimensions === 1
     ? 'int linear = x;'
     : dimensions === 2
       ? 'int linear = y * nx + x;'
       : 'int linear = (z * ny + y) * nx + x;';
-  return [...axes.map((axis) => coordinateLines[axis]), '', `if (${guard}) {`, `  ${linear}`, '  output[linear] = input[linear];', '}'].join('\n');
+  const blockValues = axes.map((axis) => blockDim[axis]).join(', ');
+  const gridValues = axes.map((axis) => gridDim[axis]).join(', ');
+  return [
+    `__global__ void mapKernel(const float* input, float* output, ${sizeArguments}) {`,
+    ...axes.map((axis) => `  ${coordinateLines[axis]}`),
+    '',
+    `  if (${guard}) {`,
+    `    ${linear}`,
+    '    output[linear] = input[linear];',
+    '  }',
+    '}',
+    '',
+    `dim3 block(${blockValues});`,
+    `dim3 grid(${gridValues});`,
+    `mapKernel<<<grid, block>>>(input, output, ${launchArguments});`,
+  ].join('\n');
 }
 
 return { AXES, activeAxes, product, coordinateToLinear, threadToCoordinate, coordinateToBlockAndThread, isInBounds, formatTuple, cudaCode };

@@ -215,7 +215,7 @@ function renderDetails() {
   const inBounds = isInBounds(state.selected, state.shape, currentAxes);
   const launched = inLaunchedGrid(state.selected);
   details.innerHTML = `<dl><div><dt>Data coordinate</dt><dd>${formatTuple(state.selected, currentAxes)}</dd></div><div><dt>blockIdx</dt><dd>${formatTuple(blockIndex, currentAxes)}</dd></div><div><dt>threadIdx</dt><dd>${formatTuple(threadIndex, currentAxes)}</dd></div><div><dt>Linear index</dt><dd>${linear}</dd></div><div><dt>State</dt><dd class="${inBounds && launched ? 'in-bounds' : 'out-of-bounds'}">${inBounds && launched ? 'in bounds: writes data' : 'outside N: guard skips work'}</dd></div></dl>`;
-  codeExample.textContent = cudaCode(state.dimensions);
+  codeExample.textContent = cudaCode(state.dimensions, state.blockDim, state.gridDim);
 }
 
 function render() { updateInputs(); renderSummary(); renderSliceStack(); renderDimensionNote(); renderMap(); renderUnassigned(); renderDetails(); }
