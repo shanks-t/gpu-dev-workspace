@@ -1,4 +1,4 @@
-import { activeAxes, coordinateToBlockAndThread, coordinateToLinear, cudaCode, formatTuple, isInBounds, product, threadToCoordinate } from './mapping.js';
+const { activeAxes, coordinateToBlockAndThread, coordinateToLinear, cudaCode, formatTuple, isInBounds, product } = CudaMapping;
 
 const state = {
   dimensions: 2,
@@ -28,7 +28,8 @@ function inputGroup(target, label, values, key) {
     const inputLabel = document.createElement('label');
     inputLabel.textContent = `${label}${axis}`;
     const input = document.createElement('input');
-    input.type = 'number'; input.min = '1'; input.max = '32'; input.value = values[axis]; input.dataset.key = key; input.dataset.axis = axis;
+    input.type = 'number'; input.id = `${key}-${axis}`; input.name = `${key}-${axis}`; input.min = '1'; input.max = '32'; input.value = values[axis]; input.dataset.key = key; input.dataset.axis = axis;
+    inputLabel.htmlFor = input.id;
     inputLabel.append(input); target.append(inputLabel);
   });
 }

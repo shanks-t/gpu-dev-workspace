@@ -1,14 +1,15 @@
-export const AXES = ['x', 'y', 'z'];
+const CudaMapping = (() => {
+const AXES = ['x', 'y', 'z'];
 
-export function activeAxes(dimensions) {
+function activeAxes(dimensions) {
   return AXES.slice(0, dimensions);
 }
 
-export function product(values, axes) {
+function product(values, axes) {
   return axes.reduce((total, axis) => total * values[axis], 1);
 }
 
-export function coordinateToLinear(coordinate, shape, axes) {
+function coordinateToLinear(coordinate, shape, axes) {
   let linear = 0;
   let stride = 1;
   axes.forEach((axis) => {
@@ -18,11 +19,11 @@ export function coordinateToLinear(coordinate, shape, axes) {
   return linear;
 }
 
-export function threadToCoordinate(blockIndex, threadIndex, blockDim, axes) {
+function threadToCoordinate(blockIndex, threadIndex, blockDim, axes) {
   return Object.fromEntries(axes.map((axis) => [axis, blockIndex[axis] * blockDim[axis] + threadIndex[axis]]));
 }
 
-export function coordinateToBlockAndThread(coordinate, blockDim, axes) {
+function coordinateToBlockAndThread(coordinate, blockDim, axes) {
   const blockIndex = {};
   const threadIndex = {};
   axes.forEach((axis) => {
@@ -32,15 +33,15 @@ export function coordinateToBlockAndThread(coordinate, blockDim, axes) {
   return { blockIndex, threadIndex };
 }
 
-export function isInBounds(coordinate, shape, axes) {
+function isInBounds(coordinate, shape, axes) {
   return axes.every((axis) => coordinate[axis] < shape[axis]);
 }
 
-export function formatTuple(values, axes) {
+function formatTuple(values, axes) {
   return `(${axes.map((axis) => values[axis]).join(', ')})`;
 }
 
-export function cudaCode(dimensions) {
+function cudaCode(dimensions) {
   const coordinateLines = {
     x: 'int x = blockIdx.x * blockDim.x + threadIdx.x;',
     y: 'int y = blockIdx.y * blockDim.y + threadIdx.y;',
@@ -55,3 +56,6 @@ export function cudaCode(dimensions) {
       : 'int linear = (z * ny + y) * nx + x;';
   return [...axes.map((axis) => coordinateLines[axis]), '', `if (${guard}) {`, `  ${linear}`, '  output[linear] = input[linear];', '}'].join('\n');
 }
+
+return { AXES, activeAxes, product, coordinateToLinear, threadToCoordinate, coordinateToBlockAndThread, isInBounds, formatTuple, cudaCode };
+})();
