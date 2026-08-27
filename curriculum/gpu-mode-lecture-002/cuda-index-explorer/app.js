@@ -19,6 +19,7 @@ const codeExample = document.querySelector('#code-example');
 const sliceStack = document.querySelector('#slice-stack');
 const unassigned = document.querySelector('#unassigned');
 const coverageStatement = document.querySelector('#coverage-statement');
+const dimensionNote = document.querySelector('#dimension-note');
 
 function axes() { return activeAxes(state.dimensions); }
 function clamp(value) { return Math.max(1, Math.min(32, Number(value) || 1)); }
@@ -73,22 +74,37 @@ function renderSliceStack() {
   const layers = visibleSlices(total, state.slice);
   const title = document.createElement('p');
   title.className = 'stack-label';
-  title.textContent = `Viewing the x–y plane at z = ${state.slice} in a stack of ${total} launched layers`;
+  title.textContent = `Viewing the x–y plane at z = ${state.slice}; layers are grouped by blockIdx.z.`;
   const layersElement = document.createElement('div');
-  layersElement.className = 'stack-layers';
+  layersElement.className = 'stack-groups';
   let previous = -1;
+  const groups = new Map();
   layers.forEach((z) => {
-    if (z > previous + 1) {
+    const blockZ = Math.floor(z / state.blockDim.z);
+    if (!groups.has(blockZ)) groups.set(blockZ, []);
+    groups.get(blockZ).push(z);
+  });
+  [...groups.entries()].forEach(([blockZ, slices]) => {
+    const firstSlice = slices[0];
+    if (firstSlice > previous + 1) {
       const ellipsis = document.createElement('span'); ellipsis.className = 'stack-ellipsis'; ellipsis.textContent = '⋮'; layersElement.append(ellipsis);
     }
-    const layer = document.createElement('button');
-    const isCurrent = z === state.slice;
-    const inBounds = z < state.shape.z;
-    layer.type = 'button'; layer.className = `slice-layer${isCurrent ? ' current' : ''}${inBounds ? '' : ' outside'}`;
-    layer.textContent = `z = ${z}${inBounds ? '' : ' · outside N'}`;
-    layer.setAttribute('aria-pressed', String(isCurrent));
-    layer.addEventListener('click', () => { state.slice = z; state.selected.z = z; render(); });
-    layersElement.append(layer); previous = z;
+    const group = document.createElement('section'); group.className = 'slice-group';
+    const groupLabel = document.createElement('p'); groupLabel.className = 'slice-group-label'; groupLabel.textContent = `blockIdx.z = ${blockZ}`;
+    const groupLayers = document.createElement('div'); groupLayers.className = 'stack-layers';
+    slices.forEach((z) => {
+      const isCurrent = z === state.slice;
+      const inBounds = z < state.shape.z;
+      const layer = document.createElement('button');
+      layer.type = 'button'; layer.className = `slice-layer${isCurrent ? ' current' : ''}${inBounds ? '' : ' outside'}`;
+      layer.dataset.z = z;
+      layer.innerHTML = `<span>z = ${z}</span><small>threadIdx.z = ${z % state.blockDim.z}</small>${inBounds ? '' : '<em>outside N</em>'}`;
+      layer.setAttribute('aria-pressed', String(isCurrent));
+      layer.setAttribute('aria-label', `z equals ${z}; block index z equals ${blockZ}; thread index z equals ${z % state.blockDim.z}${inBounds ? '' : '; outside N'}`);
+      layer.addEventListener('click', () => { state.slice = z; state.selected.z = z; render(); });
+      groupLayers.append(layer); previous = z;
+    });
+    group.append(groupLabel, groupLayers); layersElement.append(group);
   });
   sliceStack.append(title, layersElement);
 }
@@ -98,9 +114,16 @@ function cellLabel(coordinate) {
 }
 
 function blockColor(blockIndex) {
-  // A color represents one specific CUDA block, including its z coordinate.
-  // The coordinate label remains the source of truth once this palette repeats.
-  return `hsl(${(blockIndex.x * 47 + blockIndex.y * 91 + blockIndex.z * 137) % 360} 65% 42%)`;
+  // Color is a stable anchor for x-y tile position. In 3D, the slice stack
+  // shows blockIdx.z structurally, so colors do not jump between layers.
+  return `hsl(${(blockIndex.x * 47 + blockIndex.y * 91) % 360} 65% 42%)`;
+}
+
+function renderDimensionNote() {
+  dimensionNote.hidden = false;
+  dimensionNote.textContent = state.dimensions === 3
+    ? '3D reading: tile color identifies the x–y block position; stack groups identify blockIdx.z; each layer shows threadIdx.z.'
+    : 'Block color identifies the CUDA block that contains each thread.';
 }
 
 function renderMap() {
@@ -195,7 +218,7 @@ function renderDetails() {
   codeExample.textContent = cudaCode(state.dimensions);
 }
 
-function render() { updateInputs(); renderSummary(); renderSliceStack(); renderMap(); renderUnassigned(); renderDetails(); }
+function render() { updateInputs(); renderSummary(); renderSliceStack(); renderDimensionNote(); renderMap(); renderUnassigned(); renderDetails(); }
 
 document.querySelector('#dimension-picker').addEventListener('click', (event) => {
   const button = event.target.closest('button[data-dimensions]');
