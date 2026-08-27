@@ -94,6 +94,13 @@ function cellLabel(coordinate) {
   return state.dimensions === 1 ? String(coordinate.x) : `${coordinate.x},${coordinate.y}`;
 }
 
+function blockColor(blockIndex) {
+  // Keep a block's visual identity stable as the view gains dimensions: x
+  // distinguishes blocks along a row and y distinguishes block rows. z is
+  // represented by the selected layer in the stack rather than recoloring a plane.
+  return `hsl(${(blockIndex.x * 47 + blockIndex.y * 91) % 360} 65% 45%)`;
+}
+
 function renderMap() {
   map.replaceChildren();
   const currentAxes = axes();
@@ -109,7 +116,7 @@ function renderMap() {
       const chosen = currentAxes.every((axis) => coordinate[axis] === state.selected[axis]);
       const button = document.createElement('button');
       button.type = 'button'; button.className = `cell${valid ? '' : ' outside'}${chosen ? ' selected' : ''}`;
-      button.style.setProperty('--block-color', `hsl(${(blockIndex.x * 47 + blockIndex.y * 91 + blockIndex.z * 137) % 360} 65% 45%)`);
+      button.style.setProperty('--block-color', blockColor(blockIndex));
       button.textContent = cellLabel(coordinate);
       button.title = `blockIdx ${formatTuple(blockIndex, currentAxes)}, threadIdx ${formatTuple(threadIndex, currentAxes)}`;
       button.setAttribute('aria-label', `data coordinate ${formatTuple(coordinate, currentAxes)}`);
