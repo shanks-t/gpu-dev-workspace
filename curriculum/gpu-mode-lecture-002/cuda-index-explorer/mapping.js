@@ -41,7 +41,7 @@ function formatTuple(values, axes) {
   return `(${axes.map((axis) => values[axis]).join(', ')})`;
 }
 
-function cudaCode(dimensions, blockDim, gridDim) {
+function cudaCode(dimensions, blockDim, gridDim, shape) {
   const coordinateLines = {
     x: 'int x = blockIdx.x * blockDim.x + threadIdx.x;',
     y: 'int y = blockIdx.y * blockDim.y + threadIdx.y;',
@@ -58,7 +58,14 @@ function cudaCode(dimensions, blockDim, gridDim) {
       : 'int linear = (z * ny + y) * nx + x;';
   const blockValues = axes.map((axis) => blockDim[axis]).join(', ');
   const gridValues = axes.map((axis) => gridDim[axis]).join(', ');
+  const arrayAxes = [...axes].reverse();
+  const arrayShape = arrayAxes.map((axis) => shape[axis]);
+  const numpyShape = arrayShape.length === 1 ? `(${arrayShape[0]},)` : `(${arrayShape.join(', ')})`;
+  const elementStrides = arrayAxes.map((axis, index) => arrayAxes.slice(index + 1).reduce((stride, laterAxis) => stride * shape[laterAxis], 1));
+  const byteStrides = elementStrides.map((stride) => stride * 4);
+  const arrayAccess = dimensions === 1 ? '[x]' : dimensions === 2 ? '[y, x]' : '[z, y, x]';
   return [
+    '// CUDA: one launched thread maps to one logical element',
     `__global__ void mapKernel(const float* input, float* output, ${sizeArguments}) {`,
     ...axes.map((axis) => `  ${coordinateLines[axis]}`),
     '',
@@ -71,6 +78,18 @@ function cudaCode(dimensions, blockDim, gridDim) {
     `dim3 block(${blockValues});`,
     `dim3 grid(${gridValues});`,
     `mapKernel<<<grid, block>>>(input, output, ${launchArguments});`,
+    '',
+    '# NumPy: row-major float32 array',
+    'import numpy as np',
+    `array = np.empty(${numpyShape}, dtype=np.float32)`,
+    `array.strides  # ${formatTuple(Object.fromEntries(arrayAxes.map((axis, index) => [axis, byteStrides[index]])), arrayAxes)} bytes`,
+    `array${arrayAccess}  # same logical element as output[linear]`,
+    '',
+    '# PyTorch: row-major float32 tensor',
+    'import torch',
+    `tensor = torch.empty(${numpyShape}, dtype=torch.float32)`,
+    `tensor.stride()  # ${formatTuple(Object.fromEntries(arrayAxes.map((axis, index) => [axis, elementStrides[index]])), arrayAxes)} elements`,
+    `tensor${arrayAccess}  # same logical element as output[linear]`,
   ].join('\n');
 }
 
