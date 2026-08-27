@@ -18,6 +18,7 @@ const details = document.querySelector('#selected-details');
 const codeExample = document.querySelector('#code-example');
 const sliceStack = document.querySelector('#slice-stack');
 const unassigned = document.querySelector('#unassigned');
+const coverageStatement = document.querySelector('#coverage-statement');
 
 function axes() { return activeAxes(state.dimensions); }
 function clamp(value) { return Math.max(1, Math.min(32, Number(value) || 1)); }
@@ -53,7 +54,10 @@ function renderSummary() {
   const launchedShape = Object.fromEntries(currentAxes.map((axis) => [axis, state.blockDim[axis] * state.gridDim[axis]]));
   const coveredElements = currentAxes.reduce((total, axis) => total * Math.min(state.shape[axis], launchedShape[axis]), 1);
   const unassignedElements = dataElements - coveredElements;
-  summary.innerHTML = `<div><span>Data elements</span><strong>${dataElements}</strong></div><div><span>Threads/block</span><strong>${product(state.blockDim, currentAxes)}</strong></div><div><span>Blocks/grid</span><strong>${product(state.gridDim, currentAxes)}</strong></div><div><span>Launched threads</span><strong>${totalThreads}</strong></div><div><span>Covered shape</span><strong>${formatTuple(launchedShape, currentAxes)}</strong></div><div class="${unassignedElements ? 'warning' : ''}"><span>Unassigned data</span><strong>${unassignedElements}</strong></div>`;
+  const unusedThreads = totalThreads - coveredElements;
+  const overlapShape = Object.fromEntries(currentAxes.map((axis) => [axis, Math.min(state.shape[axis], launchedShape[axis])]));
+  summary.innerHTML = `<div class="data-total"><span>Data elements</span><strong>${dataElements}</strong></div><div class="launch-total"><span>Launched threads</span><strong>${totalThreads}</strong></div><div class="covered-total"><span>Covered data</span><strong>${coveredElements}</strong></div><div class="${unusedThreads ? 'warning' : ''}"><span>Unused threads</span><strong>${unusedThreads}</strong></div><div class="${unassignedElements ? 'warning' : ''}"><span>Uncovered data</span><strong>${unassignedElements}</strong></div><div><span>Launch shape</span><strong>${formatTuple(launchedShape, currentAxes)}</strong></div>`;
+  coverageStatement.innerHTML = `<strong>Array shape N</strong> ${formatTuple(state.shape, currentAxes)} <span>∩</span> <strong>launch shape</strong> ${formatTuple(launchedShape, currentAxes)} <span>=</span> <strong>covered shape</strong> ${formatTuple(overlapShape, currentAxes)}`;
 }
 
 function visibleSlices(total, selected) {

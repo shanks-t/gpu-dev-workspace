@@ -37,7 +37,20 @@
         </fieldset>
       </section>
 
-      <section class="summary" aria-label="Launch summary" id="summary"></section>
+      <section class="summary" aria-label="Coverage summary" id="summary"></section>
+      <section class="coverage-key" aria-labelledby="coverage-key-title">
+        <div class="coverage-key-heading">
+          <p class="eyebrow">Coverage model</p>
+          <h2 id="coverage-key-title">How to read the map</h2>
+        </div>
+        <div class="coverage-key-items">
+          <div><span class="key data"></span><strong>Data elements</strong><p>Valid coordinates inside the array shape <code>N</code>.</p></div>
+          <div><span class="key launch"></span><strong>Launched threads</strong><p>All coordinates created by <code>gridDim × blockDim</code>.</p></div>
+          <div><span class="key covered"></span><strong>Covered data</strong><p>The overlap: one launched thread maps to one valid element.</p></div>
+          <div><span class="key outside"></span><strong>Unused threads</strong><p>Launched outside <code>N</code>; a bounds guard skips them.</p></div>
+          <div><span class="key missing"></span><strong>Uncovered data</strong><p>Valid data with no launched thread; it receives no work.</p></div>
+        </div>
+      </section>
 
       <section class="workspace">
         <section class="visual-panel" aria-labelledby="map-title">
@@ -49,9 +62,9 @@
           </div>
           <div id="slice-stack" class="slice-stack" aria-label="3D array slice stack"></div>
           <p class="mapping-rule"><strong>Mapping model:</strong> 1 launched thread → 1 data element. Grid-stride loops are not modeled.</p>
+          <p id="coverage-statement" class="coverage-statement"></p>
           <section id="unassigned" class="unassigned" aria-live="polite"></section>
           <div id="map" class="map" role="grid" aria-label="Array elements grouped by their CUDA blocks"></div>
-          <p class="map-key"><span class="key valid"></span>in bounds <span class="key selected"></span>selected thread <span class="key outside"></span>launched but outside N <span class="key missing"></span>data with no launched thread</p>
         </section>
 
         <aside class="inspection" aria-live="polite">
