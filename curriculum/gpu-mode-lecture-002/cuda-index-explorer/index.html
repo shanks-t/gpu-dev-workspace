@@ -44,22 +44,26 @@
       </details>
       <section class="workspace">
         <section class="visual-panel" aria-labelledby="map-title">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Logical data space</p>
-              <h2 id="map-title">Launched threads → data</h2>
+          <div class="visual-top">
+            <div class="visual-context">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Logical data space</p>
+                  <h2 id="map-title">Launched threads → data</h2>
+                </div>
+              </div>
+              <div id="slice-stack" class="slice-stack" aria-label="3D array slice stack"></div>
+              <p class="mapping-rule"><strong>Mapping model:</strong> 1 launched thread → 1 data element. Grid-stride loops are not modeled.</p>
+              <p id="dimension-note" class="dimension-note"></p>
+              <p id="coverage-statement" class="coverage-statement"></p>
             </div>
+            <section class="selected-thread-panel" aria-live="polite">
+              <p class="eyebrow">Selected thread</p>
+              <div id="selected-details"></div>
+            </section>
           </div>
-          <div id="slice-stack" class="slice-stack" aria-label="3D array slice stack"></div>
-          <p class="mapping-rule"><strong>Mapping model:</strong> 1 launched thread → 1 data element. Grid-stride loops are not modeled.</p>
-          <p id="dimension-note" class="dimension-note"></p>
-          <p id="coverage-statement" class="coverage-statement"></p>
           <section id="unassigned" class="unassigned" aria-live="polite"></section>
           <div id="map" class="map" role="grid" aria-label="Array elements grouped by their CUDA blocks"></div>
-          <section class="selected-thread-panel" aria-live="polite">
-            <p class="eyebrow">Selected thread</p>
-            <div id="selected-details"></div>
-          </section>
         </section>
       </section>
       <section class="coverage-key" aria-labelledby="coverage-key-title">
