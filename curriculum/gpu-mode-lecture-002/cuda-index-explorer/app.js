@@ -19,6 +19,7 @@ const codeExample = document.querySelector('#code-example');
 const sliceControl = document.querySelector('#slice-control');
 const sliceInput = document.querySelector('#z-slice');
 const sliceOutput = document.querySelector('#z-output');
+const sliceStack = document.querySelector('#slice-stack');
 
 function axes() { return activeAxes(state.dimensions); }
 function clamp(value) { return Math.max(1, Math.min(32, Number(value) || 1)); }
@@ -54,6 +55,39 @@ function renderSummary() {
   const dataElements = product(state.shape, currentAxes);
   const launchedShape = Object.fromEntries(currentAxes.map((axis) => [axis, state.blockDim[axis] * state.gridDim[axis]]));
   summary.innerHTML = `<div><span>Data elements</span><strong>${dataElements}</strong></div><div><span>Threads/block</span><strong>${product(state.blockDim, currentAxes)}</strong></div><div><span>Blocks/grid</span><strong>${product(state.gridDim, currentAxes)}</strong></div><div><span>Launched threads</span><strong>${totalThreads}</strong></div><div><span>Covered shape</span><strong>${formatTuple(launchedShape, currentAxes)}</strong></div>`;
+}
+
+function visibleSlices(total, selected) {
+  if (total <= 8) return Array.from({ length: total }, (_, z) => z);
+  return [...new Set([0, 1, selected - 1, selected, selected + 1, total - 2, total - 1].filter((z) => z >= 0 && z < total))];
+}
+
+function renderSliceStack() {
+  sliceStack.replaceChildren();
+  if (state.dimensions < 3) { sliceStack.hidden = true; return; }
+  sliceStack.hidden = false;
+  const total = state.blockDim.z * state.gridDim.z;
+  const layers = visibleSlices(total, state.slice);
+  const title = document.createElement('p');
+  title.className = 'stack-label';
+  title.textContent = `Viewing the x–y plane at z = ${state.slice} in a stack of ${total} launched layers`;
+  const layersElement = document.createElement('div');
+  layersElement.className = 'stack-layers';
+  let previous = -1;
+  layers.forEach((z) => {
+    if (z > previous + 1) {
+      const ellipsis = document.createElement('span'); ellipsis.className = 'stack-ellipsis'; ellipsis.textContent = '⋮'; layersElement.append(ellipsis);
+    }
+    const layer = document.createElement('button');
+    const isCurrent = z === state.slice;
+    const inBounds = z < state.shape.z;
+    layer.type = 'button'; layer.className = `slice-layer${isCurrent ? ' current' : ''}${inBounds ? '' : ' outside'}`;
+    layer.textContent = `z = ${z}${inBounds ? '' : ' · outside N'}`;
+    layer.setAttribute('aria-pressed', String(isCurrent));
+    layer.addEventListener('click', () => { state.slice = z; state.selected.z = z; render(); });
+    layersElement.append(layer); previous = z;
+  });
+  sliceStack.append(title, layersElement);
 }
 
 function cellLabel(coordinate) {
@@ -95,7 +129,7 @@ function renderDetails() {
   codeExample.textContent = cudaCode(state.dimensions);
 }
 
-function render() { updateInputs(); renderSummary(); renderMap(); renderDetails(); }
+function render() { updateInputs(); renderSummary(); renderSliceStack(); renderMap(); renderDetails(); }
 
 document.querySelector('#dimension-picker').addEventListener('click', (event) => {
   const button = event.target.closest('button[data-dimensions]');
