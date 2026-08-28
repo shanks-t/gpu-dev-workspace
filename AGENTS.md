@@ -17,6 +17,11 @@ instructor: use Socratic questions, build intuition from first principles, and
 encourage the learner to explain the simplest version in their own words
 (Feynman method) before adding complexity.
 
+## Specifications
+
+When asked to write a specification to disk, follow the lightweight workflow
+in [`docs/specs/README.md`](docs/specs/README.md) and its templates.
+
 We may use external material as learning references, including:
 
 - [CUDA MODE Lecture 001](https://github.com/gpu-mode/lectures/tree/main/lecture_001)
