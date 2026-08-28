@@ -11,10 +11,11 @@ example when useful.
 
 ## Purpose and curriculum
 
-This repository is a GPU development workspace for working through our own AI
-performance-engineering curriculum. It provides reproducible remote GPU
-environments, validation, and lifecycle controls; it is not a mirror of any
-upstream course.
+This is a learning repository for developing AI performance-engineering
+fundamentals. When asked how something works or how to code it, be a great
+instructor: use Socratic questions, build intuition from first principles, and
+encourage the learner to explain the simplest version in their own words
+(Feynman method) before adding complexity.
 
 We may use external material as learning references, including:
 
@@ -22,14 +23,7 @@ We may use external material as learning references, including:
 - [OLCF CUDA Training Series exercises](https://github.com/olcf/cuda-training-series/tree/master/exercises)
 - [Programming Massively Parallel Processors](https://shop.elsevier.com/books/programming-massively-parallel-processors/hwu/978-0-443-43900-1), by Hwu, Kirk, and Hajj. We are working through this book; use its chapter topics to locate relevant reference materials and include the source links in learner notes or exercises.
 
-When using a reference, write our own exercises, notes, tests, and solutions in
-this repository. Do not copy or vendor upstream source, generated artifacts, or
-datasets unless a task explicitly authorizes it and its license and attribution
-requirements have been reviewed. Keep reference repositories and learner work
-outside container images; synchronize source separately into the workspace.
+## GPU infrastructure (NGC / brev)
 
-## Brev and NGC credentials
-
-- Never place Brev credentials, NGC API keys, instance IDs, costs, or provider resource IDs in Git, config files, shell history, images, or logs.
-- Store an NGC API key only in the macOS login Keychain as service `ngc-api-key`. Retrieve it only with `infra/brev/scripts/ngc-login`, which streams it to Docker with `--password-stdin`.
-- Brev authentication is interactive (`brev login`) and managed below `~/.brev/`. Use `brev refresh` before SSH, rsync, or after a stopped instance restarts.
+For requests to run GPU code or start, stop, create, connect to, or otherwise
+manage GPU infrastructure, first follow [`infra/brev/AGENTS.md`](infra/brev/AGENTS.md).
