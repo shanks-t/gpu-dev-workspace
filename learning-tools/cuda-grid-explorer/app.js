@@ -15,6 +15,7 @@ const state = {
   selected: { x: 6, y: 3, z: 0 },
   slice: 0,
   zoomIndex: 2,
+  focusedBlock: null,
 };
 
 const map = document.querySelector('#map');
@@ -34,6 +35,9 @@ const mapZoom = document.querySelector('#map-zoom');
 const zoomOut = document.querySelector('#zoom-out');
 const zoomIn = document.querySelector('#zoom-in');
 const zoomLevel = document.querySelector('#zoom-level');
+const blockNavigator = document.querySelector('#block-navigator');
+const blockViewLabel = document.querySelector('#block-view-label');
+const showAllBlocks = document.querySelector('#show-all-blocks');
 
 function axes() { return activeAxes(state.dimensions); }
 function clamp(value, max = 32) { return Math.max(1, Math.min(max, Number(value) || 1)); }
@@ -173,28 +177,60 @@ function sampledBlocks() {
   }));
 }
 
+function totalBlocks() { return state.gridDim.x * (state.dimensions === 1 ? 1 : state.gridDim.y); }
+
+function focusedBlockIsValid() {
+  return state.focusedBlock
+    && state.focusedBlock.x < state.gridDim.x
+    && (state.dimensions === 1 || state.focusedBlock.y < state.gridDim.y);
+}
+
+function focusBlock(block) {
+  state.focusedBlock = { x: block.x, y: block.y };
+  state.selected = {
+    x: block.x * state.blockDim.x,
+    y: state.dimensions === 1 ? 0 : block.y * state.blockDim.y,
+    z: state.dimensions === 3 ? state.slice : 0,
+  };
+  render();
+}
+
+function renderBlockNavigator(focused, currentAxes) {
+  blockNavigator.hidden = totalBlocks() <= 1;
+  if (blockNavigator.hidden) return;
+  const blockCount = totalBlocks();
+  blockViewLabel.textContent = focused
+    ? `Focused: blockIdx ${formatTuple(state.focusedBlock, currentAxes)} · ${state.blockDim.x * (state.dimensions === 1 ? 1 : state.blockDim.y)} threads`
+    : `Overview: ${blockCount} blocks · select a block header to inspect its threads`;
+  showAllBlocks.hidden = !focused;
+}
+
 function renderMap() {
   map.replaceChildren();
   const currentAxes = axes();
   const launchedDepth = state.blockDim.z * state.gridDim.z;
-  const blocks = sampledBlocks();
+  if (state.focusedBlock && !focusedBlockIsValid()) state.focusedBlock = null;
+  const focused = Boolean(state.focusedBlock);
+  const blocks = focused ? [state.focusedBlock] : sampledBlocks();
   const threadsPerBlock = state.blockDim.x * (state.dimensions === 1 ? 1 : state.blockDim.y);
   const cellsPerBlock = Math.max(1, Math.floor(MAX_RENDERED_CELLS / blocks.length));
   const renderedThreadsPerBlock = Math.min(threadsPerBlock, cellsPerBlock);
-  map.style.setProperty('--block-columns', Math.min(state.gridDim.x, MAX_VISUAL_BLOCK_COLUMNS));
+  map.style.setProperty('--block-columns', focused ? 1 : Math.min(state.gridDim.x, MAX_VISUAL_BLOCK_COLUMNS));
   map.classList.toggle('one-dimensional', state.dimensions === 1);
-  const compactLayout = threadsPerBlock > 32 || blocks.length < state.gridDim.x * (state.dimensions === 1 ? 1 : state.gridDim.y);
+  const compactLayout = threadsPerBlock > 32 || blocks.length < totalBlocks();
   map.classList.toggle('compact', compactLayout);
   map.classList.toggle('zoomable', compactLayout);
+  map.classList.toggle('focused', focused);
   map.style.setProperty('--zoom-cell-size', `${20 * ZOOM_LEVELS[state.zoomIndex]}px`);
   renderZoom(compactLayout);
-  const omittedBlocks = state.gridDim.x * (state.dimensions === 1 ? 1 : state.gridDim.y) - blocks.length;
+  const omittedBlocks = totalBlocks() - blocks.length;
   const omittedThreads = threadsPerBlock - renderedThreadsPerBlock;
   renderNote.hidden = !compactLayout;
   const samplingNote = omittedBlocks || omittedThreads
-    ? `${blocks.length} of ${state.gridDim.x * (state.dimensions === 1 ? 1 : state.gridDim.y)} blocks and ${renderedThreadsPerBlock} of ${threadsPerBlock} threads per visible block are shown. The selected thread is kept visible when it belongs to this slice.`
+    ? `${blocks.length} of ${totalBlocks()} blocks and ${renderedThreadsPerBlock} of ${threadsPerBlock} threads per visible block are shown. The selected thread is kept visible when it belongs to this slice.`
     : `All ${threadsPerBlock} threads per block are shown.`;
   renderNote.textContent = `Compact explorer view: ${samplingNote} Large blocks wrap at 16 cells per row; each cell label preserves its CUDA coordinate.`;
+  renderBlockNavigator(focused, currentAxes);
   if (state.dimensions === 3 && state.slice >= launchedDepth) {
     const empty = document.createElement('p');
     empty.className = 'empty-launch'; empty.textContent = `No CUDA blocks were launched for z = ${state.slice}.`;
@@ -207,8 +243,11 @@ function renderMap() {
       region.style.setProperty('--block-color', blockColor(blockIndex));
       region.style.setProperty('--thread-columns', Math.min(state.blockDim.x, 16));
       region.setAttribute('aria-label', `CUDA block ${formatTuple(blockIndex, currentAxes)}`);
-      const label = document.createElement('p');
-      label.className = 'block-label'; label.textContent = `blockIdx ${formatTuple(blockIndex, currentAxes)}${omittedThreads ? ` · ${renderedThreadsPerBlock}/${threadsPerBlock} threads` : ''}`;
+      const label = document.createElement('button');
+      label.type = 'button'; label.className = 'block-label'; label.textContent = `blockIdx ${formatTuple(blockIndex, currentAxes)}${omittedThreads ? ` · ${renderedThreadsPerBlock}/${threadsPerBlock} threads` : ''}`;
+      label.title = focused ? 'This block is in focus' : `Focus block ${formatTuple(blockIndex, currentAxes)}`;
+      label.disabled = focused;
+      label.addEventListener('click', () => focusBlock({ x: bx, y: by }));
       region.append(label);
       const selectedThreadX = state.selected.x - bx * state.blockDim.x;
       const selectedThreadY = state.dimensions === 1 ? 0 : state.selected.y - by * state.blockDim.y;
@@ -286,7 +325,7 @@ function render() { updateInputs(); renderSummary(); renderSliceStack(); renderD
 document.querySelector('#dimension-picker').addEventListener('click', (event) => {
   const button = event.target.closest('button[data-dimensions]');
   if (!button) return;
-  state.dimensions = Number(button.dataset.dimensions); state.selected = { x: 0, y: 0, z: 0 }; state.slice = 0; render();
+  state.dimensions = Number(button.dataset.dimensions); state.selected = { x: 0, y: 0, z: 0 }; state.slice = 0; state.focusedBlock = null; render();
 });
 
 document.querySelector('.controls').addEventListener('input', (event) => {
@@ -312,6 +351,11 @@ zoomOut.addEventListener('click', () => {
 
 zoomIn.addEventListener('click', () => {
   state.zoomIndex = Math.min(ZOOM_LEVELS.length - 1, state.zoomIndex + 1);
+  render();
+});
+
+showAllBlocks.addEventListener('click', () => {
+  state.focusedBlock = null;
   render();
 });
 

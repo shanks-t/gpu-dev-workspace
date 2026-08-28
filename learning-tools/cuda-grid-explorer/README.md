@@ -17,6 +17,10 @@ compact, representative map capped at 64 blocks and 1,024 clickable cells; the
 summary and selected-thread details always use the complete launch. Compact
 maps include step-wise 60%, 80%, 100%, and 120% zoom controls.
 
+When a launch includes more than one block, the block navigator keeps an
+overview available. Select a block header to focus it and render its threads in
+the map; use **Show all blocks** to return to the responsive overview.
+
 The implementation intentionally separates mapping math in `mapping.js` from
 UI behavior in `app.js`, so future views can add topics such as warps, memory
 coalescing, shared-memory tiling, reductions, and grid-stride loops.
