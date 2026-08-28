@@ -219,10 +219,10 @@ function renderMap() {
   map.classList.toggle('one-dimensional', state.dimensions === 1);
   const compactLayout = threadsPerBlock > 32 || blocks.length < totalBlocks();
   map.classList.toggle('compact', compactLayout);
-  map.classList.toggle('zoomable', compactLayout);
+  map.classList.toggle('zoomable', compactLayout && focused);
   map.classList.toggle('focused', focused);
   map.style.setProperty('--zoom-cell-size', `${20 * ZOOM_LEVELS[state.zoomIndex]}px`);
-  renderZoom(compactLayout);
+  renderZoom(compactLayout && focused);
   const omittedBlocks = totalBlocks() - blocks.length;
   const omittedThreads = threadsPerBlock - renderedThreadsPerBlock;
   renderNote.hidden = !compactLayout;

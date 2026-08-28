@@ -55,6 +55,7 @@ legend { padding: 0 3px; color: #26334c; font-size: .84rem; font-weight: 700; }
 .cell { aspect-ratio: 1; min-width: 27px; padding: 0; border: 1px solid color-mix(in srgb, var(--block-color), #fff 48%); border-radius: 3px; color: #111827; background: #fff; cursor: pointer; font-size: clamp(.56rem, 1.5vw, .78rem); font-weight: 750; }
 .map.compact .block-region { gap: 2px; padding: 6px; }.map.compact .cell { min-width: 0; font-size: .62rem; }.map.compact .block-label { font-size: .62rem; }
 .map.one-dimensional.compact .block-region { grid-template-rows: auto; }.map.one-dimensional.compact .cell { aspect-ratio: 1; min-height: 0; }
+.map.compact:not(.focused) { grid-template-columns: repeat(var(--block-columns), minmax(0, 1fr)); overflow: hidden; }.map.compact:not(.focused) .block-region { grid-template-columns: repeat(var(--thread-columns), minmax(0, 1fr)); min-width: 0; }.map.compact:not(.focused) .cell { width: auto; min-width: 0; overflow: hidden; font-size: clamp(.42rem, .58vw, .62rem); text-overflow: clip; }
 .map.zoomable { grid-template-columns: repeat(var(--block-columns), max-content); justify-content: start; }.map.zoomable .block-region { grid-template-columns: repeat(var(--thread-columns), var(--zoom-cell-size)); }.map.zoomable .cell { width: var(--zoom-cell-size); min-width: 0; font-size: clamp(.46rem, calc(var(--zoom-cell-size) * .42), .68rem); }
 .map.focused { width: fit-content; max-width: 100%; min-height: 0; }
 .cell:hover { filter: brightness(.95); transform: scale(1.04); }
