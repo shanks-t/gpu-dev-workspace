@@ -22,6 +22,10 @@ overview available. Select a block header to focus it and render its threads in
 the map; use **Show all blocks** to return to the responsive overview. Overview
 cards always scale to fit the panel without an internal scrollbar.
 
+Array, block, and grid dimensions are manual numeric fields (commas are
+accepted). Logical array and grid axes accept values through 1,000,000,000;
+block dimensions continue to observe CUDA's per-axis and 1,024-thread limits.
+
 The implementation intentionally separates mapping math in `mapping.js` from
 UI behavior in `app.js`, so future views can add topics such as warps, memory
 coalescing, shared-memory tiling, reductions, and grid-stride loops.

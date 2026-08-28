@@ -2,6 +2,9 @@ const { activeAxes, coordinateToBlockAndThread, coordinateToLinear, cudaCode, fo
 
 const MAX_AXIS_VALUE = 1024;
 const MAX_BLOCK_THREADS = 1024;
+const MAX_LOGICAL_AXIS = 1_000_000_000;
+const MAX_SAFE_COUNT = Number.MAX_SAFE_INTEGER;
+const MAX_UNASSIGNED_PREVIEW = 10_000;
 const MAX_RENDERED_BLOCKS = 64;
 const MAX_RENDERED_CELLS = 1024;
 const MAX_VISUAL_BLOCK_COLUMNS = 8;
@@ -40,15 +43,22 @@ const blockViewLabel = document.querySelector('#block-view-label');
 const showAllBlocks = document.querySelector('#show-all-blocks');
 
 function axes() { return activeAxes(state.dimensions); }
-function clamp(value, max = 32) { return Math.max(1, Math.min(max, Number(value) || 1)); }
-function axisMax(key, axis) { return key === 'blockDim' ? (axis === 'z' ? 64 : MAX_AXIS_VALUE) : 32; }
+function numericValue(value) { return Math.floor(Number(String(value).replace(/[,_\s]/g, '')) || 1); }
+function clamp(value, max) { return Math.max(1, Math.min(max, numericValue(value))); }
+function inputLimit(key, axis) {
+  if (key === 'blockDim') return axis === 'z' ? 64 : MAX_AXIS_VALUE;
+  const otherAxes = axes().filter((currentAxis) => currentAxis !== axis);
+  const otherValues = otherAxes.reduce((total, currentAxis) => total * state[key][currentAxis], 1);
+  const launchMultiplier = key === 'gridDim' ? product(state.blockDim, axes()) : 1;
+  return Math.max(1, Math.min(MAX_LOGICAL_AXIS, Math.floor(MAX_SAFE_COUNT / (otherValues * launchMultiplier))));
+}
 function inputGroup(target, label, values, key) {
   target.replaceChildren();
   axes().forEach((axis) => {
     const inputLabel = document.createElement('label');
     inputLabel.textContent = `${label}${axis}`;
     const input = document.createElement('input');
-    input.type = 'number'; input.id = `${key}-${axis}`; input.name = `${key}-${axis}`; input.min = '1'; input.max = String(axisMax(key, axis)); input.value = values[axis]; input.dataset.key = key; input.dataset.axis = axis;
+    input.type = 'text'; input.id = `${key}-${axis}`; input.name = `${key}-${axis}`; input.inputMode = 'numeric'; input.pattern = '[0-9,]*'; input.autocomplete = 'off'; input.value = values[axis].toLocaleString('en-US'); input.dataset.key = key; input.dataset.axis = axis;
     inputLabel.htmlFor = input.id;
     inputLabel.append(input); target.append(inputLabel);
   });
@@ -274,27 +284,38 @@ function renderMap() {
 
 function renderUnassigned() {
   const currentAxes = axes();
-  const zValues = state.dimensions === 3 ? [state.slice] : [0];
-  const missing = [];
-  zValues.forEach((z) => {
-    if (state.dimensions === 3 && z >= state.shape.z) return;
-    const maxY = state.dimensions === 1 ? 1 : state.shape.y;
-    for (let y = 0; y < maxY; y += 1) {
-      for (let x = 0; x < state.shape.x; x += 1) {
-        const coordinate = { x, y, z };
-        if (!inLaunchedGrid(coordinate)) missing.push(coordinate);
-      }
-    }
-  });
+  const viewAxes = state.dimensions === 1 ? ['x'] : ['x', 'y'];
+  const viewDataElements = state.dimensions === 3 && state.slice >= state.shape.z ? 0 : product(state.shape, viewAxes);
+  const launchedInView = state.dimensions < 3 || state.slice < state.blockDim.z * state.gridDim.z;
+  const coveredElements = launchedInView
+    ? viewAxes.reduce((total, axis) => total * Math.min(state.shape[axis], state.blockDim[axis] * state.gridDim[axis]), 1)
+    : 0;
+  const missingCount = viewDataElements - coveredElements;
   unassigned.replaceChildren();
-  if (!missing.length) { unassigned.hidden = true; return; }
+  if (!missingCount) { unassigned.hidden = true; return; }
   unassigned.hidden = false;
   const title = document.createElement('p');
   title.className = 'unassigned-title';
-  title.textContent = `Undercoverage: ${missing.length} data element${missing.length === 1 ? '' : 's'} in this view have no launched thread`;
+  title.textContent = `Undercoverage: ${missingCount} data element${missingCount === 1 ? '' : 's'} in this view have no launched thread`;
   const detail = document.createElement('p');
   detail.className = 'unassigned-detail';
   detail.textContent = 'Increase gridDim, blockDim, or use a grid-stride loop to cover them.';
+  unassigned.append(title, detail);
+  if (viewDataElements > MAX_UNASSIGNED_PREVIEW) {
+    const summary = document.createElement('p');
+    summary.className = 'unassigned-detail';
+    summary.textContent = 'Individual missing coordinates are omitted for this large array.';
+    unassigned.append(summary); return;
+  }
+  const missing = [];
+  const z = state.dimensions === 3 ? state.slice : 0;
+  const maxY = state.dimensions === 1 ? 1 : state.shape.y;
+  for (let y = 0; y < maxY; y += 1) {
+    for (let x = 0; x < state.shape.x; x += 1) {
+      const coordinate = { x, y, z };
+      if (!inLaunchedGrid(coordinate)) missing.push(coordinate);
+    }
+  }
   const cells = document.createElement('div');
   cells.className = 'unassigned-cells'; cells.style.setProperty('--unassigned-columns', Math.min(state.shape.x, 16));
   const shown = missing.slice(0, 160);
@@ -328,11 +349,11 @@ document.querySelector('#dimension-picker').addEventListener('click', (event) =>
   state.dimensions = Number(button.dataset.dimensions); state.selected = { x: 0, y: 0, z: 0 }; state.slice = 0; state.focusedBlock = null; render();
 });
 
-document.querySelector('.controls').addEventListener('input', (event) => {
+document.querySelector('.controls').addEventListener('change', (event) => {
   const input = event.target;
   if (!input.dataset.key) return;
   const { key, axis } = input.dataset;
-  const nextValue = clamp(input.value, axisMax(key, axis));
+  const nextValue = clamp(input.value, inputLimit(key, axis));
   if (key === 'blockDim') {
     const otherAxes = axes().filter((currentAxis) => currentAxis !== axis);
     const otherThreads = otherAxes.reduce((total, currentAxis) => total * state.blockDim[currentAxis], 1);
@@ -342,6 +363,10 @@ document.querySelector('.controls').addEventListener('input', (event) => {
   }
   if (input.dataset.key === 'shape') state.selected[input.dataset.axis] = Math.min(state.selected[input.dataset.axis], state.shape[input.dataset.axis] - 1);
   render();
+});
+
+document.querySelector('.controls').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' && event.target.matches('input[data-key]')) event.target.blur();
 });
 
 zoomOut.addEventListener('click', () => {
