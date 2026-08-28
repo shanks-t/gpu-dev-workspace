@@ -30,6 +30,7 @@
         <fieldset>
           <legend>Threads per block <span class="subtle">(blockDim)</span></legend>
           <div class="axis-inputs" id="block-inputs"></div>
+          <p class="input-note" id="block-limit-note"></p>
         </fieldset>
         <fieldset>
           <legend>Blocks per grid <span class="subtle">(gridDim)</span></legend>
@@ -63,6 +64,7 @@
             </section>
           </div>
           <section id="unassigned" class="unassigned" aria-live="polite"></section>
+          <p id="render-note" class="render-note" aria-live="polite" hidden></p>
           <div id="map" class="map" role="grid" aria-label="Array elements grouped by their CUDA blocks"></div>
         </section>
       </section>

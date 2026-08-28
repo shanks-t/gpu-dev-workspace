@@ -1,5 +1,11 @@
 const { activeAxes, coordinateToBlockAndThread, coordinateToLinear, cudaCode, formatTuple, isInBounds, product } = CudaMapping;
 
+const MAX_AXIS_VALUE = 1024;
+const MAX_BLOCK_THREADS = 1024;
+const MAX_RENDERED_BLOCKS = 64;
+const MAX_RENDERED_CELLS = 1024;
+const MAX_VISUAL_BLOCK_COLUMNS = 8;
+
 const state = {
   dimensions: 2,
   shape: { x: 12, y: 8, z: 4 },
@@ -20,16 +26,19 @@ const sliceStack = document.querySelector('#slice-stack');
 const unassigned = document.querySelector('#unassigned');
 const coverageStatement = document.querySelector('#coverage-statement');
 const dimensionNote = document.querySelector('#dimension-note');
+const blockLimitNote = document.querySelector('#block-limit-note');
+const renderNote = document.querySelector('#render-note');
 
 function axes() { return activeAxes(state.dimensions); }
-function clamp(value) { return Math.max(1, Math.min(32, Number(value) || 1)); }
+function clamp(value, max = 32) { return Math.max(1, Math.min(max, Number(value) || 1)); }
+function axisMax(key, axis) { return key === 'blockDim' ? (axis === 'z' ? 64 : MAX_AXIS_VALUE) : 32; }
 function inputGroup(target, label, values, key) {
   target.replaceChildren();
   axes().forEach((axis) => {
     const inputLabel = document.createElement('label');
     inputLabel.textContent = `${label}${axis}`;
     const input = document.createElement('input');
-    input.type = 'number'; input.id = `${key}-${axis}`; input.name = `${key}-${axis}`; input.min = '1'; input.max = '32'; input.value = values[axis]; input.dataset.key = key; input.dataset.axis = axis;
+    input.type = 'number'; input.id = `${key}-${axis}`; input.name = `${key}-${axis}`; input.min = '1'; input.max = String(axisMax(key, axis)); input.value = values[axis]; input.dataset.key = key; input.dataset.axis = axis;
     inputLabel.htmlFor = input.id;
     inputLabel.append(input); target.append(inputLabel);
   });
@@ -44,6 +53,7 @@ function updateInputs() {
   inputGroup(blockInputs, 'T', state.blockDim, 'blockDim');
   inputGroup(gridInputs, 'B', state.gridDim, 'gridDim');
   document.querySelectorAll('#dimension-picker button').forEach((button) => button.setAttribute('aria-pressed', String(Number(button.dataset.dimensions) === state.dimensions)));
+  blockLimitNote.textContent = `CUDA model: up to ${MAX_BLOCK_THREADS} active threads per block (product of the visible T axes).`;
   const sliceDepth = Math.max(state.blockDim.z * state.gridDim.z, state.shape.z);
   state.slice = Math.min(state.slice, sliceDepth - 1);
 }
@@ -126,32 +136,68 @@ function renderDimensionNote() {
     : 'Block color identifies the CUDA block that contains each thread.';
 }
 
+function sampleIndices(total, limit, selectedIndex) {
+  if (total <= limit) return Array.from({ length: total }, (_, index) => index);
+  const indices = new Set(Array.from({ length: limit }, (_, index) => Math.round(index * (total - 1) / (limit - 1))));
+  if (selectedIndex >= 0 && selectedIndex < total && !indices.has(selectedIndex)) {
+    indices.delete([...indices][Math.floor(indices.size / 2)]);
+    indices.add(selectedIndex);
+  }
+  return [...indices].sort((left, right) => left - right);
+}
+
+function sampledBlocks() {
+  const total = state.gridDim.x * (state.dimensions === 1 ? 1 : state.gridDim.y);
+  const selectedBlockX = Math.floor(state.selected.x / state.blockDim.x);
+  const selectedBlockY = state.dimensions === 1 ? 0 : Math.floor(state.selected.y / state.blockDim.y);
+  const selectedIndex = selectedBlockY * state.gridDim.x + selectedBlockX;
+  return sampleIndices(total, MAX_RENDERED_BLOCKS, selectedIndex).map((index) => ({
+    x: index % state.gridDim.x,
+    y: Math.floor(index / state.gridDim.x),
+  }));
+}
+
 function renderMap() {
   map.replaceChildren();
   const currentAxes = axes();
-  const blockRows = state.dimensions === 1 ? 1 : state.gridDim.y;
-  const threadRows = state.dimensions === 1 ? 1 : state.blockDim.y;
   const launchedDepth = state.blockDim.z * state.gridDim.z;
-  map.style.setProperty('--block-columns', state.gridDim.x);
+  const blocks = sampledBlocks();
+  const threadsPerBlock = state.blockDim.x * (state.dimensions === 1 ? 1 : state.blockDim.y);
+  const cellsPerBlock = Math.max(1, Math.floor(MAX_RENDERED_CELLS / blocks.length));
+  const renderedThreadsPerBlock = Math.min(threadsPerBlock, cellsPerBlock);
+  map.style.setProperty('--block-columns', Math.min(state.gridDim.x, MAX_VISUAL_BLOCK_COLUMNS));
   map.classList.toggle('one-dimensional', state.dimensions === 1);
+  const compactLayout = threadsPerBlock > 32 || blocks.length < state.gridDim.x * (state.dimensions === 1 ? 1 : state.gridDim.y);
+  map.classList.toggle('compact', compactLayout);
+  const omittedBlocks = state.gridDim.x * (state.dimensions === 1 ? 1 : state.gridDim.y) - blocks.length;
+  const omittedThreads = threadsPerBlock - renderedThreadsPerBlock;
+  renderNote.hidden = !compactLayout;
+  const samplingNote = omittedBlocks || omittedThreads
+    ? `${blocks.length} of ${state.gridDim.x * (state.dimensions === 1 ? 1 : state.gridDim.y)} blocks and ${renderedThreadsPerBlock} of ${threadsPerBlock} threads per visible block are shown. The selected thread is kept visible when it belongs to this slice.`
+    : `All ${threadsPerBlock} threads per block are shown.`;
+  renderNote.textContent = `Compact explorer view: ${samplingNote} Large blocks wrap at 16 cells per row; each cell label preserves its CUDA coordinate.`;
   if (state.dimensions === 3 && state.slice >= launchedDepth) {
     const empty = document.createElement('p');
     empty.className = 'empty-launch'; empty.textContent = `No CUDA blocks were launched for z = ${state.slice}.`;
     map.append(empty); return;
   }
-  for (let by = 0; by < blockRows; by += 1) {
-    for (let bx = 0; bx < state.gridDim.x; bx += 1) {
+  blocks.forEach(({ x: bx, y: by }) => {
       const blockIndex = { x: bx, y: by, z: state.dimensions === 3 ? Math.floor(state.slice / state.blockDim.z) : 0 };
       const region = document.createElement('section');
       region.className = 'block-region';
       region.style.setProperty('--block-color', blockColor(blockIndex));
-      region.style.setProperty('--thread-columns', state.blockDim.x);
+      region.style.setProperty('--thread-columns', Math.min(state.blockDim.x, 16));
       region.setAttribute('aria-label', `CUDA block ${formatTuple(blockIndex, currentAxes)}`);
       const label = document.createElement('p');
-      label.className = 'block-label'; label.textContent = `blockIdx ${formatTuple(blockIndex, currentAxes)}`;
+      label.className = 'block-label'; label.textContent = `blockIdx ${formatTuple(blockIndex, currentAxes)}${omittedThreads ? ` · ${renderedThreadsPerBlock}/${threadsPerBlock} threads` : ''}`;
       region.append(label);
-      for (let ty = 0; ty < threadRows; ty += 1) {
-        for (let tx = 0; tx < state.blockDim.x; tx += 1) {
+      const selectedThreadX = state.selected.x - bx * state.blockDim.x;
+      const selectedThreadY = state.dimensions === 1 ? 0 : state.selected.y - by * state.blockDim.y;
+      const selectedThreadIndex = selectedThreadX >= 0 && selectedThreadX < state.blockDim.x && selectedThreadY >= 0 && selectedThreadY < state.blockDim.y
+        ? selectedThreadY * state.blockDim.x + selectedThreadX : -1;
+      sampleIndices(threadsPerBlock, renderedThreadsPerBlock, selectedThreadIndex).forEach((thread) => {
+          const tx = thread % state.blockDim.x;
+          const ty = Math.floor(thread / state.blockDim.x);
           const coordinate = { x: bx * state.blockDim.x + tx, y: by * state.blockDim.y + ty, z: state.dimensions === 3 ? state.slice : 0 };
           const threadIndex = { x: tx, y: ty, z: state.dimensions === 3 ? coordinate.z % state.blockDim.z : 0 };
           const valid = isInBounds(coordinate, state.shape, currentAxes);
@@ -163,11 +209,9 @@ function renderMap() {
           button.setAttribute('aria-label', `data coordinate ${formatTuple(coordinate, currentAxes)}`);
           button.addEventListener('click', () => { state.selected = coordinate; render(); });
           region.append(button);
-        }
-      }
+      });
       map.append(region);
-    }
-  }
+  });
 }
 
 function renderUnassigned() {
@@ -229,7 +273,15 @@ document.querySelector('#dimension-picker').addEventListener('click', (event) =>
 document.querySelector('.controls').addEventListener('input', (event) => {
   const input = event.target;
   if (!input.dataset.key) return;
-  state[input.dataset.key][input.dataset.axis] = clamp(input.value);
+  const { key, axis } = input.dataset;
+  const nextValue = clamp(input.value, axisMax(key, axis));
+  if (key === 'blockDim') {
+    const otherAxes = axes().filter((currentAxis) => currentAxis !== axis);
+    const otherThreads = otherAxes.reduce((total, currentAxis) => total * state.blockDim[currentAxis], 1);
+    state.blockDim[axis] = Math.min(nextValue, Math.max(1, Math.floor(MAX_BLOCK_THREADS / otherThreads)));
+  } else {
+    state[key][axis] = nextValue;
+  }
   if (input.dataset.key === 'shape') state.selected[input.dataset.axis] = Math.min(state.selected[input.dataset.axis], state.shape[input.dataset.axis] - 1);
   render();
 });
