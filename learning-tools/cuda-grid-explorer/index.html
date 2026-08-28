@@ -52,6 +52,11 @@
                   <p class="eyebrow">Logical data space</p>
                   <h2 id="map-title">Launched threads → data</h2>
                 </div>
+                <div class="map-zoom" id="map-zoom" aria-label="Compact map zoom" hidden>
+                  <button type="button" id="zoom-out" aria-label="Zoom out">−</button>
+                  <output id="zoom-level" for="zoom-out zoom-in">100%</output>
+                  <button type="button" id="zoom-in" aria-label="Zoom in">+</button>
+                </div>
               </div>
               <div id="slice-stack" class="slice-stack" aria-label="3D array slice stack"></div>
               <p class="mapping-rule"><strong>Mapping model:</strong> 1 launched thread → 1 data element. Grid-stride loops are not modeled.</p>

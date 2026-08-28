@@ -5,6 +5,7 @@ const MAX_BLOCK_THREADS = 1024;
 const MAX_RENDERED_BLOCKS = 64;
 const MAX_RENDERED_CELLS = 1024;
 const MAX_VISUAL_BLOCK_COLUMNS = 8;
+const ZOOM_LEVELS = [0.6, 0.8, 1, 1.2];
 
 const state = {
   dimensions: 2,
@@ -13,6 +14,7 @@ const state = {
   gridDim: { x: 3, y: 4, z: 2 },
   selected: { x: 6, y: 3, z: 0 },
   slice: 0,
+  zoomIndex: 2,
 };
 
 const map = document.querySelector('#map');
@@ -28,6 +30,10 @@ const coverageStatement = document.querySelector('#coverage-statement');
 const dimensionNote = document.querySelector('#dimension-note');
 const blockLimitNote = document.querySelector('#block-limit-note');
 const renderNote = document.querySelector('#render-note');
+const mapZoom = document.querySelector('#map-zoom');
+const zoomOut = document.querySelector('#zoom-out');
+const zoomIn = document.querySelector('#zoom-in');
+const zoomLevel = document.querySelector('#zoom-level');
 
 function axes() { return activeAxes(state.dimensions); }
 function clamp(value, max = 32) { return Math.max(1, Math.min(max, Number(value) || 1)); }
@@ -136,6 +142,16 @@ function renderDimensionNote() {
     : 'Block color identifies the CUDA block that contains each thread.';
 }
 
+function renderZoom(compactLayout) {
+  mapZoom.hidden = !compactLayout;
+  if (!compactLayout) return;
+  const percentage = Math.round(ZOOM_LEVELS[state.zoomIndex] * 100);
+  zoomLevel.value = `${percentage}%`;
+  zoomLevel.textContent = `${percentage}%`;
+  zoomOut.disabled = state.zoomIndex === 0;
+  zoomIn.disabled = state.zoomIndex === ZOOM_LEVELS.length - 1;
+}
+
 function sampleIndices(total, limit, selectedIndex) {
   if (total <= limit) return Array.from({ length: total }, (_, index) => index);
   const indices = new Set(Array.from({ length: limit }, (_, index) => Math.round(index * (total - 1) / (limit - 1))));
@@ -169,6 +185,9 @@ function renderMap() {
   map.classList.toggle('one-dimensional', state.dimensions === 1);
   const compactLayout = threadsPerBlock > 32 || blocks.length < state.gridDim.x * (state.dimensions === 1 ? 1 : state.gridDim.y);
   map.classList.toggle('compact', compactLayout);
+  map.classList.toggle('zoomable', compactLayout);
+  map.style.setProperty('--zoom-cell-size', `${20 * ZOOM_LEVELS[state.zoomIndex]}px`);
+  renderZoom(compactLayout);
   const omittedBlocks = state.gridDim.x * (state.dimensions === 1 ? 1 : state.gridDim.y) - blocks.length;
   const omittedThreads = threadsPerBlock - renderedThreadsPerBlock;
   renderNote.hidden = !compactLayout;
@@ -283,6 +302,16 @@ document.querySelector('.controls').addEventListener('input', (event) => {
     state[key][axis] = nextValue;
   }
   if (input.dataset.key === 'shape') state.selected[input.dataset.axis] = Math.min(state.selected[input.dataset.axis], state.shape[input.dataset.axis] - 1);
+  render();
+});
+
+zoomOut.addEventListener('click', () => {
+  state.zoomIndex = Math.max(0, state.zoomIndex - 1);
+  render();
+});
+
+zoomIn.addEventListener('click', () => {
+  state.zoomIndex = Math.min(ZOOM_LEVELS.length - 1, state.zoomIndex + 1);
   render();
 });
 
