@@ -19,6 +19,7 @@ setup, see [editor support](docs/brev/editor.md).
 ## A few useful places
 
 - [Curriculum](curriculum/README.md) — exercises and artifacts.
+- [Learning tools](learning-tools/README.md) — reusable interactive visualizations.
 - [Programming Massively Parallel Processors](https://shop.elsevier.com/books/programming-massively-parallel-processors/hwu/978-0-443-43900-1) — primary textbook; add chapter-aligned source links to learner notes and exercises.
 - [Brev infrastructure rules](infra/brev/AGENTS.md) — VM lifecycle, sync, and NGC.
 - [Nsight Compute guide](docs/brev/ncu.md) — profiling workflow.
