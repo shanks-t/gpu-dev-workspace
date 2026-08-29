@@ -5,6 +5,10 @@
   "workspaceFolder": "/workspace",
   "overrideCommand": false,
   "shutdownAction": "none",
+  "mounts": [
+    "source=gpu-fundamentals-vscode-extensions,target=/root/.vscode-server/extensions,type=volume",
+    "source=gpu-fundamentals-vscode-extension-cache,target=/root/.vscode-server/extensionsCache,type=volume"
+  ],
   "customizations": {
     "vscode": {
       "extensions": [
