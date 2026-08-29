@@ -8,9 +8,11 @@ x-pytorch: &pytorch
             count: all
             capabilities: [gpu]
   working_dir: /workspace
+  user: "${BREV_UID:-1000}:${BREV_GID:-1000}"
   volumes:
     - /home/ubuntu/workspace:/workspace
   environment:
+    HOME: /home/ubuntu
     NVIDIA_DRIVER_CAPABILITIES: compute,utility
   entrypoint: ["bash"]
 

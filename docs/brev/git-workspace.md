@@ -21,8 +21,10 @@ confirm it with the preflight command below.
 `ubuntu` owns `/home/ubuntu/workspace` and its `.git` directory. The NGC
 services run with that user's numeric UID and GID (normally `1000:1000`), so
 edits made from VS Code, Jupyter, or a container shell remain writable by the
-same user. Run `git` on the VM as `ubuntu`; do not use `sudo` or run Git from a
-root container shell.
+same user. VS Code's container home is bind-mounted from
+`/home/ubuntu/.devcontainer-home` so extension state is also user-writable.
+Run `git` on the VM as `ubuntu`; do not use `sudo` or run Git from a root
+container shell.
 
 ## One-time migration
 
