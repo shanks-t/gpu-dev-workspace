@@ -1,0 +1,92 @@
+ Container compose-pytorch-run-d398b3bbf990 Creating 
+ Container compose-pytorch-run-d398b3bbf990 Created 
+==PROF== Connected to process 92 (/usr/bin/nvidia-smi)
+==PROF== Disconnected from process 92
+==PROF== Connected to process 102 (/workspace/curriculum/gpu-mode-lecture-002/vector_addition/vector_addition)
+==PROF== Profiling "vecAddKernel": 0%....50%....100% - 8 passes
+==PROF== Disconnected from process 102
+==PROF== Report: /workspace/curriculum/gpu-mode-lecture-002/vector_addition/vector_addition-ncu.ncu-rep
+[102] vector_addition@127.0.0.1
+  vecAddKernel(float *, float *, float *, int) (4, 1, 1)x(256, 1, 1), Context 1, Stream 7, Device 0, CC 8.9
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ------------
+    Metric Name             Metric Unit Metric Value
+    ----------------------- ----------- ------------
+    DRAM Frequency                  Ghz         6.04
+    SM Frequency                    Mhz       770.27
+    Elapsed Cycles                cycle         3355
+    Memory Throughput                 %         0.95
+    DRAM Throughput                   %         0.95
+    Duration                         us         4.35
+    L1/TEX Cache Throughput           %        12.74
+    L2 Cache Throughput               %         0.71
+    SM Active Cycles              cycle        94.21
+    Compute (SM) Throughput           %         0.13
+    ----------------------- ----------- ------------
+
+    OPT   This kernel grid is too small to fill the available resources on this device, resulting in only 0.0 full      
+          waves across all SMs. Look at Launch Statistics for more details.                                             
+
+    Section: Launch Statistics
+    -------------------------------- --------------- ---------------
+    Metric Name                          Metric Unit    Metric Value
+    -------------------------------- --------------- ---------------
+    Block Size                                                   256
+    Function Cache Configuration                     CachePreferNone
+    Grid Size                                                      4
+    Registers Per Thread             register/thread              16
+    Shared Memory Configuration Size           Kbyte           16.38
+    Driver Shared Memory Per Block       Kbyte/block            1.02
+    Dynamic Shared Memory Per Block       byte/block               0
+    Static Shared Memory Per Block        byte/block               0
+    # SMs                                         SM              58
+    Threads                                   thread            1024
+    Uses Green Context                                             0
+    Waves Per SM                                                0.01
+    -------------------------------- --------------- ---------------
+
+    OPT   Est. Speedup: 93.1%                                                                                           
+          The grid for this launch is configured to execute only 4 blocks, which is less than the GPU's 58              
+          multiprocessors. This can underutilize some multiprocessors. If you do not intend to execute this kernel      
+          concurrently with other workloads, consider reducing the block size to have at least one block per            
+          multiprocessor or increase the size of the grid to fully utilize the available hardware resources. See the    
+          Hardware Model (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-hw-model)            
+          description for more details on launch configurations.                                                        
+
+    Section: Occupancy
+    ------------------------------- ----------- ------------
+    Metric Name                     Metric Unit Metric Value
+    ------------------------------- ----------- ------------
+    Block Limit SM                        block           24
+    Block Limit Registers                 block           16
+    Block Limit Shared Mem                block           16
+    Block Limit Warps                     block            6
+    Theoretical Active Warps per SM        warp           48
+    Theoretical Occupancy                     %          100
+    Achieved Occupancy                        %        16.78
+    Achieved Active Warps Per SM           warp         8.05
+    ------------------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 83.22%                                                                                    
+          The difference between calculated theoretical (100.0%) and measured achieved occupancy (16.8%) can be the     
+          result of warp scheduling overheads or workload imbalances during the kernel execution. Load imbalances can   
+          occur between warps within a block as well as across blocks of the same kernel. See the CUDA Best Practices   
+          Guide (https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html#occupancy) for more details on     
+          optimizing occupancy.                                                                                         
+
+    Section: GPU and Memory Workload Distribution
+    -------------------------- ----------- ------------
+    Metric Name                Metric Unit Metric Value
+    -------------------------- ----------- ------------
+    Average DRAM Active Cycles       cycle       250.67
+    Total DRAM Elapsed Cycles        cycle       157696
+    Average L1 Active Cycles         cycle        94.21
+    Total L1 Elapsed Cycles          cycle       191822
+    Average L2 Active Cycles         cycle       342.50
+    Total L2 Elapsed Cycles          cycle        83496
+    Average SM Active Cycles         cycle        94.21
+    Total SM Elapsed Cycles          cycle       191822
+    Average SMSP Active Cycles       cycle        92.36
+    Total SMSP Elapsed Cycles        cycle       767288
+    -------------------------- ----------- ------------
+

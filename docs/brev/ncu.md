@@ -37,30 +37,42 @@ docker compose -f infra/brev/compose/ngc-pytorch.compose.yaml run --rm \
 This produces `square() performance.png` and `square() performance.csv` in
 `curriculum/gpu-mode-lecture-001/artifacts/`.
 
-## Capture an Nsight Compute report
+## Capture a readable Nsight Compute log (default)
 
-Run NCU in the same NGC container. `SYS_ADMIN` is required because NVIDIA
-drivers restrict GPU performance-counter access by default. It is scoped to
-this one container invocation; it does not change the VM driver's global
-policy.
+Run NCU in the same NGC container. The default artifact is a readable `.log`
+file, which includes Speed of Light, launch, occupancy, and memory-workload
+details. `SYS_ADMIN` is required because NVIDIA drivers restrict GPU
+performance-counter access by default. It is scoped to this one container
+invocation; it does not change the VM driver's global policy.
 
 ```sh
 docker compose -f infra/brev/compose/ngc-pytorch.compose.yaml run --rm \
   --cap-add SYS_ADMIN pytorch -lc \
   'cd curriculum/gpu-mode-lecture-001/artifacts && \
    ncu --target-processes all --kernel-name regex:square_kernel --launch-count 1 --page details \
-       -o triton-square-ncu python ../triton_square.py' \
+       python ../triton_square.py' \
   2>&1 | tee curriculum/gpu-mode-lecture-001/artifacts/triton-square-ncu.log
 ```
 
+The Python script continues through its benchmark after that capture;
+`--launch-count 1` limits NCU collection, not the application's work.
+
+## Save a binary Nsight Compute report (only when explicitly requested)
+
+Add `-o REPORT_NAME` to the NCU command when an `.ncu-rep` report is requested
+for inspection in the Nsight Compute desktop application:
+
+```sh
+ncu --target-processes all --kernel-name regex:square_kernel --launch-count 1 --page details \
+    -o triton-square-ncu python ../triton_square.py
+```
+
 The resulting `triton-square-ncu.ncu-rep` contains the metrics for the first
-matching generated Triton kernel. The Python script continues through its
-benchmark after that capture; `--launch-count 1` limits NCU collection, not
-the application's work.
+matching generated Triton kernel.
 
 ## Retrieve and review
 
-From the Mac, copy the report and supporting outputs into the local lesson
+From the Mac, copy the log and supporting outputs into the local lesson
 artifacts directory:
 
 ```sh
@@ -72,7 +84,7 @@ open -a 'NVIDIA Nsight Compute' \
   curriculum/gpu-mode-lecture-001/artifacts/triton-square-ncu.ncu-rep
 ```
 
-### Install the macOS report viewer
+### Install the macOS report viewer (only for an explicitly requested report)
 
 The `.ncu-rep` file is a binary Nsight Compute report, so view it with the
 Nsight Compute desktop UI rather than a text editor. Download the current

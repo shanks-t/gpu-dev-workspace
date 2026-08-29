@@ -1,0 +1,91 @@
+==PROF== Connected to process 86 (/workspace/curriculum/gpu-mode-lecture-002/vector_addition/vector_addition)
+==PROF== Profiling "vecAddKernel": 0%....50%....100% - 8 passes
+==PROF== Disconnected from process 86
+[86] vector_addition@127.0.0.1
+  vecAddKernel(float *, float *, float *, int) (391, 1, 1)x(256, 1, 1), Context 1, Stream 7, Device 0, CC 8.9
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ------------
+    Metric Name             Metric Unit Metric Value
+    ----------------------- ----------- ------------
+    DRAM Frequency                  Ghz         6.18
+    SM Frequency                    Mhz       785.09
+    Elapsed Cycles                cycle         5858
+    Memory Throughput                 %        40.21
+    DRAM Throughput                   %        40.21
+    Duration                         us         7.46
+    L1/TEX Cache Throughput           %        12.43
+    L2 Cache Throughput               %        17.20
+    SM Active Cycles              cycle      3469.16
+    Compute (SM) Throughput           %         7.40
+    ----------------------- ----------- ------------
+
+    OPT   This kernel exhibits low compute throughput and memory bandwidth utilization relative to the peak performance 
+          of this device. Achieved compute throughput and/or memory bandwidth below 60.0% of peak typically indicate    
+          latency issues. Look at Scheduler Statistics and Warp State Statistics for potential reasons.                 
+
+    Section: Launch Statistics
+    -------------------------------- --------------- ---------------
+    Metric Name                          Metric Unit    Metric Value
+    -------------------------------- --------------- ---------------
+    Block Size                                                   256
+    Function Cache Configuration                     CachePreferNone
+    Grid Size                                                    391
+    Registers Per Thread             register/thread              16
+    Shared Memory Configuration Size           Kbyte           16.38
+    Driver Shared Memory Per Block       Kbyte/block            1.02
+    Dynamic Shared Memory Per Block       byte/block               0
+    Static Shared Memory Per Block        byte/block               0
+    # SMs                                         SM              58
+    Threads                                   thread          100096
+    Uses Green Context                                             0
+    Waves Per SM                                                1.12
+    -------------------------------- --------------- ---------------
+
+    OPT   Est. Speedup: 50%                                                                                             
+          A wave of thread blocks is defined as the maximum number of blocks that can be executed in parallel on the    
+          target GPU. The number of blocks in a wave depends on the number of multiprocessors and the theoretical       
+          occupancy of the kernel. This kernel launch results in 1 full waves and a partial wave of 43 thread blocks.   
+          Under the assumption of a uniform execution duration of all thread blocks, the partial wave may account for   
+          up to 50.0% of the total kernel runtime with a lower occupancy of 25.6%. Try launching a grid with no         
+          partial wave. The overall impact of this tail effect also lessens with the number of full waves executed for  
+          a grid. See the Hardware Model                                                                                
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-hw-model) description for more      
+          details on launch configurations.                                                                             
+
+    Section: Occupancy
+    ------------------------------- ----------- ------------
+    Metric Name                     Metric Unit Metric Value
+    ------------------------------- ----------- ------------
+    Block Limit SM                        block           24
+    Block Limit Registers                 block           16
+    Block Limit Shared Mem                block           16
+    Block Limit Warps                     block            6
+    Theoretical Active Warps per SM        warp           48
+    Theoretical Occupancy                     %          100
+    Achieved Occupancy                        %        74.42
+    Achieved Active Warps Per SM           warp        35.72
+    ------------------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 25.58%                                                                                    
+          The difference between calculated theoretical (100.0%) and measured achieved occupancy (74.4%) can be the     
+          result of warp scheduling overheads or workload imbalances during the kernel execution. Load imbalances can   
+          occur between warps within a block as well as across blocks of the same kernel. See the CUDA Best Practices   
+          Guide (https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html#occupancy) for more details on     
+          optimizing occupancy.                                                                                         
+
+    Section: GPU and Memory Workload Distribution
+    -------------------------- ----------- ------------
+    Metric Name                Metric Unit Metric Value
+    -------------------------- ----------- ------------
+    Average DRAM Active Cycles       cycle     18530.67
+    Total DRAM Elapsed Cycles        cycle       276480
+    Average L1 Active Cycles         cycle      3469.16
+    Total L1 Elapsed Cycles          cycle       337842
+    Average L2 Active Cycles         cycle      3139.54
+    Total L2 Elapsed Cycles          cycle       145824
+    Average SM Active Cycles         cycle      3469.16
+    Total SM Elapsed Cycles          cycle       337842
+    Average SMSP Active Cycles       cycle      3510.77
+    Total SMSP Elapsed Cycles        cycle      1351368
+    -------------------------- ----------- ------------
+
