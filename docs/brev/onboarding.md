@@ -45,6 +45,26 @@ docker compose -f infra/brev/compose/ngc-pytorch.compose.yaml run --rm pytorch -
 Store artifacts under the lesson's `artifacts/` directory. For Nsight Compute,
 see [the profiling guide](ncu.md).
 
+## Run JupyterLab
+
+JupyterLab runs in the same pinned NGC container as the lesson scripts. Do not
+install PyTorch or Jupyter kernels into the VM host Python environment.
+
+Start the notebook container from the Mac:
+
+```sh
+infra/brev/scripts/notebook INSTANCE
+```
+
+In a second local terminal, create the SSH tunnel:
+
+```sh
+brev port-forward INSTANCE -p 8888:8888
+```
+
+Open <http://localhost:8888>. The container port is bound to `127.0.0.1` on
+the VM, so it is reachable only through the authenticated SSH tunnel.
+
 ## Credentials and cleanup
 
 - Save the NGC key in the macOS Keychain; `infra/brev/scripts/ngc-login INSTANCE`

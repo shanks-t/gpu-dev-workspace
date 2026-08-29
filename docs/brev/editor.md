@@ -42,3 +42,26 @@ supported macOS runtime, so run Triton and CUDA code on the VM.
 After the next edit in Zed, repeat the sync and run steps. `sync-source` is
 the normal incremental `rsync --delete` path; it refreshes the Brev connection
 details before copying files.
+
+## VS Code notebooks in the NGC container
+
+For interactive notebooks, use VS Code Remote SSH to reach the Brev VM, then
+reopen the repository in its NGC Dev Container. This puts the VS Code Python
+and Jupyter extensions in the same environment as CUDA scripts.
+
+1. Start and sync the VM, then launch the notebook container:
+
+   ```sh
+   infra/brev/scripts/sync-source INSTANCE
+   infra/brev/scripts/notebook INSTANCE
+   brev open INSTANCE code --dir /home/ubuntu/workspace
+   ```
+
+2. In VS Code, run **Dev Containers: Reopen in Container**. The committed
+   `.devcontainer/devcontainer.json` selects the `jupyter` service and opens
+   `/workspace`.
+3. Open an `.ipynb` file and choose the container Python kernel once. It is
+   `/usr/local/bin/python` and includes the NGC image's CUDA-enabled PyTorch.
+
+Use the browser route in the [onboarding guide](onboarding.md#run-jupyterlab)
+when you prefer the full JupyterLab UI.
