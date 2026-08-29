@@ -12,6 +12,7 @@ reports/brev/*
 docs/specs/
 __pycache__/
 *.pyc
+*.o
 .venv/
 .artifacts/
 # Keep lightweight, reviewable visual results and console logs.
