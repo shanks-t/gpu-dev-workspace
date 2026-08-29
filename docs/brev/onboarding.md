@@ -63,10 +63,10 @@ infra/brev/scripts/notebook INSTANCE
 In a second local terminal, create the SSH tunnel:
 
 ```sh
-brev port-forward INSTANCE -p 8888:8888
+brev port-forward INSTANCE -p 8889:8889
 ```
 
-Open <http://localhost:8888>. The container port is bound to `127.0.0.1` on
+Open <http://localhost:8889>. The container port is bound to `127.0.0.1` on
 the VM, so it is reachable only through the authenticated SSH tunnel.
 
 ## Open the VS Code workspace

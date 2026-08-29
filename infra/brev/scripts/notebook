@@ -17,7 +17,7 @@ cat <<EOF
 JupyterLab is running only on the VM loopback interface.
 In another local terminal, forward it with:
 
-  brev port-forward $instance -p 8888:8888
+  brev port-forward $instance -p 8889:8889
 
-Then open http://localhost:8888.
+Then open http://localhost:8889.
 EOF
