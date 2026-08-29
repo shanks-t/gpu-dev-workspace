@@ -94,7 +94,7 @@ if ss -ltn '( sport = :8889 )' | grep -q LISTEN \
 fi
 docker compose -f "$compose_file" up -d --no-build --no-deps jupyter
 docker compose -f "$compose_file" exec -T jupyter sh -lc \
-  'id -u | grep -qx 1000 && test "$HOME" = /home/ubuntu'
+  'id -u | grep -qx 1000 && test "$HOME" = /home/ubuntu' </dev/null
 printf 'Workspace ready: Git %s <%s>; NGC Jupyter re-used on port 8889\n' "$git_name" "$git_email"
 REMOTE
 
