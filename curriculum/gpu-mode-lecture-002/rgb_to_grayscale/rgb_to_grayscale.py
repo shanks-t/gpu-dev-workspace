@@ -3,9 +3,11 @@ import torch
 from torchvision.io import read_image, write_png
 from torch.utils.cpp_extension import load_inline
 
+LESSON_DIR = Path(__file__).resolve().parent
+
 
 def compile_extension():
-    cuda_source = Path("grayscale_kernel.cu").read_text()
+    cuda_source = (LESSON_DIR / "grayscale_kernel.cu").read_text()
     cpp_source = "torch::Tensor rgb_to_grayscale(torch::Tensor image);"
 
     # Load the CUDA kernel as a PyTorch extension
@@ -28,7 +30,7 @@ def main():
     """
     ext = compile_extension()
 
-    x = read_image("Grace_Hopper.jpg").permute(1, 2, 0).cuda()
+    x = read_image(str(LESSON_DIR / "Grace_Hopper.jpg")).permute(1, 2, 0).cuda()
     print("mean:", x.float().mean())
     print("Input image:", x.shape, x.dtype)
 
@@ -38,7 +40,7 @@ def main():
 
     print("Output image:", y.shape, y.dtype)
     print("mean", y.float().mean())
-    write_png(y.permute(2, 0, 1).cpu(), "output.png")
+    write_png(y.permute(2, 0, 1).cpu(), str(LESSON_DIR / "output.png"))
 
 
 if __name__ == "__main__":
