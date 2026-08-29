@@ -61,7 +61,7 @@ and Jupyter extensions in the same environment as CUDA scripts.
    `.devcontainer/devcontainer.json` selects the `jupyter` service and opens
    `/workspace`.
 3. Open an `.ipynb` file and choose the container Python kernel once. It is
-   `/usr/local/bin/python` and includes the NGC image's CUDA-enabled PyTorch.
+   `/usr/bin/python` and includes the NGC image's CUDA-enabled PyTorch.
 
 Use the browser route in the [onboarding guide](onboarding.md#run-jupyterlab)
 when you prefer the full JupyterLab UI.
