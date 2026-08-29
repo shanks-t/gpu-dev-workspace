@@ -23,14 +23,13 @@ supported macOS runtime, so run Triton and CUDA code on the VM.
 
 1. Complete the [one-time Git workspace migration](git-workspace.md) before
    opening an existing rsync workspace.
-2. Start or choose `INSTANCE` with the [GPU VM selection guide](instance-selection.md).
-3. Open the remote checkout in VS Code and reopen it in the Dev Container:
+2. Open the remote checkout in VS Code and reopen it in the Dev Container:
 
    ```sh
    infra/brev/scripts/open-workspace INSTANCE --confirm-start
    ```
 
-4. Edit under `/workspace`, then review and commit from the VM checkout:
+3. Edit under `/workspace`, then review and commit from the VM checkout:
 
    ```sh
    cd /home/ubuntu/workspace
@@ -41,13 +40,13 @@ supported macOS runtime, so run Triton and CUDA code on the VM.
    git push origin remote
    ```
 
-5. On the Mac, retrieve the commit:
+4. On the Mac, retrieve the commit:
 
    ```sh
    git pull --ff-only origin remote
    ```
 
-6. To run an exercise manually on the VM, use NGC:
+5. To run an exercise manually on the VM, use NGC:
 
    ```sh
    cd /home/ubuntu/workspace
@@ -83,22 +82,18 @@ and Jupyter extensions in the same environment as CUDA scripts.
 Use the browser route in the [onboarding guide](onboarding.md#run-jupyterlab)
 when you prefer the full JupyterLab UI.
 
-### Extension cache lifecycle
+### Fast reconnect lifecycle
 
-The Dev Container configuration persists VS Code's extension installation and
-download cache in the `gpu-fundamentals-vscode-extensions` and
-`gpu-fundamentals-vscode-extension-cache` Docker volumes. The first connection
-downloads Python, Jupyter, Pylance, and their dependencies; later rebuilds reuse
-those volumes instead of downloading them again.
+The persistent `jupyter` service and `/home/ubuntu/.devcontainer-home` keep
+the VS Code server, extensions, and Jupyter state available across editor
+reconnects. `open-workspace` reuses that service and only builds the NGC-derived
+image when it is absent. Closing VS Code does not stop the service.
 
-The volumes are retained when the notebook container is recreated and while the
-Brev VM is stopped. To deliberately reset them on the VM, run:
+To deliberately reset the VS Code server state on the VM, run:
 
 ```sh
-docker volume rm \
-  gpu-fundamentals-vscode-extensions \
-  gpu-fundamentals-vscode-extension-cache
+rm -rf /home/ubuntu/.devcontainer-home
 ```
 
-Only reset the volumes to force a clean extension install; the next Dev
+Only reset the directory to force a clean extension install; the next Dev
 Container connection will need to download the extensions again.

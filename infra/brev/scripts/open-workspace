@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-  echo "usage: open-workspace INSTANCE [--confirm-start] [--deadline-minutes MINUTES]" >&2
+  echo "usage: open-workspace INSTANCE [--confirm-start] [--pull] [--deadline-minutes MINUTES]" >&2
   exit 2
 }
 
@@ -10,10 +10,12 @@ instance=${1:-}
 [[ -n "$instance" ]] || usage
 shift
 confirm_start=false
+pull_checkout=false
 deadline_minutes=120
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --confirm-start) confirm_start=true; shift ;;
+    --pull) pull_checkout=true; shift ;;
     --deadline-minutes) deadline_minutes=${2:-}; shift 2 ;;
     *) usage ;;
   esac
@@ -61,11 +63,13 @@ if [[ "$started" == true ]]; then
 fi
 
 ssh -A -o BatchMode=yes -o ControlMaster=no -o ControlPath=none "$instance" \
-  bash -s -- "$git_name" "$git_email" <<'REMOTE'
+  bash -s -- "$git_name" "$git_email" "$pull_checkout" <<'REMOTE'
 set -euo pipefail
 git_name=$1
 git_email=$2
+pull_checkout=$3
 workspace=/home/ubuntu/workspace
+compose_file=infra/brev/compose/ngc-pytorch.compose.yaml
 
 [[ $(id -un) == ubuntu ]] || { echo "REFUSE: remote checkout user must be ubuntu" >&2; exit 1; }
 test -d "$workspace/.git" || { echo "REFUSE: $workspace is not a Git checkout" >&2; exit 1; }
@@ -74,11 +78,24 @@ install -d --mode=0755 /home/ubuntu/.devcontainer-home
   echo "REFUSE: checkout is not on the remote branch" >&2
   exit 1
 }
-git -C "$workspace" pull --ff-only origin remote
+if [[ "$pull_checkout" == true ]]; then
+  git -C "$workspace" pull --ff-only origin remote
+fi
 git -C "$workspace" config user.name "$git_name"
 git -C "$workspace" config user.email "$git_email"
 git -C "$workspace" ls-remote --exit-code origin refs/heads/remote </dev/null >/dev/null
-printf 'Git identity configured for /workspace: %s <%s>\n' "$git_name" "$git_email"
+if ! docker image inspect gpu-fundamentals-ngc-pytorch:24.07-py3 >/dev/null 2>&1; then
+  docker compose -f "$compose_file" build jupyter
+fi
+if ss -ltn '( sport = :8889 )' | grep -q LISTEN \
+  && [[ -z $(docker compose -f "$compose_file" ps --status running -q jupyter) ]]; then
+  echo "REFUSE: port 8889 is occupied outside the NGC Jupyter service" >&2
+  exit 1
+fi
+docker compose -f "$compose_file" up -d --no-build --no-deps jupyter
+docker compose -f "$compose_file" exec -T jupyter sh -lc \
+  'id -u | grep -qx 1000 && test "$HOME" = /home/ubuntu'
+printf 'Workspace ready: Git %s <%s>; NGC Jupyter re-used on port 8889\n' "$git_name" "$git_email"
 REMOTE
 
 brev open "$instance" code --dir /home/ubuntu/workspace

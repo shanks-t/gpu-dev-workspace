@@ -62,8 +62,9 @@ and writes `.brev-migration.json` with the selected commit and branch.
 1. Start or choose an approved VM and run `brev refresh`.
 2. Run `infra/brev/scripts/open-workspace INSTANCE --confirm-start`. It starts
    a stopped VM, refreshes Brev, configures Git identity for the shared
-   checkout, fast-forwards the `remote` branch, starts the watchdog, and opens
-   VS Code at the remote workspace.
+   checkout, reuses the NGC Jupyter service, starts the watchdog, and opens VS
+   Code at the remote workspace. Add `--pull` only when you intend to
+   fast-forward the checkout.
    Reopen it in the NGC Dev Container; or start Jupyter with
    `infra/brev/scripts/notebook INSTANCE`.
 3. Edit under `/workspace`. In the VM shell, review and commit as `ubuntu`:

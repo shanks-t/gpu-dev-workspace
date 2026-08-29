@@ -23,7 +23,9 @@ The first time an rsync-populated VM is used, follow the approved
 [one-time Git workspace migration](git-workspace.md#one-time-migration). It
 backs up remote learner work before replacing `/home/ubuntu/workspace`.
 
-After the VM has its Git checkout, open a session with one command. When the
+After the VM has its Git checkout, open or reconnect to a session with one
+command. It reuses the existing NGC Jupyter/Dev Container service on port 8889
+when present, so reconnects do not rebuild or create a second service. When the
 VM is stopped, `--confirm-start` explicitly authorizes its runtime cost and
 installs the 120-minute stop watchdog:
 
@@ -34,6 +36,9 @@ infra/brev/scripts/open-workspace INSTANCE --confirm-start
 Edit and commit in the remote checkout, then retrieve work locally with
 `git pull --ff-only origin remote`. For VS Code and Dev Container setup, see
 [editor support](editor.md).
+
+To deliberately fast-forward the VM checkout before opening it, add `--pull`.
+The default leaves in-progress remote edits untouched.
 
 ## Run GPU work
 
