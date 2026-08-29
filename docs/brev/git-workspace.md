@@ -23,6 +23,8 @@ services run with that user's numeric UID and GID (normally `1000:1000`), so
 edits made from VS Code, Jupyter, or a container shell remain writable by the
 same user. VS Code's container home is bind-mounted from
 `/home/ubuntu/.devcontainer-home` so extension state is also user-writable.
+The local derived image retains the pinned NGC base and only adds the named
+`ubuntu` account that VS Code needs to resolve that home directory.
 Run `git` on the VM as `ubuntu`; do not use `sudo` or run Git from a root
 container shell.
 

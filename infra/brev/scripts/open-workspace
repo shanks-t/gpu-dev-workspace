@@ -69,6 +69,7 @@ workspace=/home/ubuntu/workspace
 
 [[ $(id -un) == ubuntu ]] || { echo "REFUSE: remote checkout user must be ubuntu" >&2; exit 1; }
 test -d "$workspace/.git" || { echo "REFUSE: $workspace is not a Git checkout" >&2; exit 1; }
+install -d --mode=0755 /home/ubuntu/.devcontainer-home
 [[ $(git -C "$workspace" branch --show-current) == remote ]] || {
   echo "REFUSE: checkout is not on the remote branch" >&2
   exit 1

@@ -3,13 +3,9 @@
   "dockerComposeFile": "../infra/brev/compose/ngc-pytorch.compose.yaml",
   "service": "jupyter",
   "workspaceFolder": "/workspace",
-  "remoteUser": "1000",
+  "remoteUser": "ubuntu",
   "overrideCommand": false,
   "shutdownAction": "none",
-  "initializeCommand": "mkdir -p /home/ubuntu/.devcontainer-home",
-  "mounts": [
-    "source=/home/ubuntu/.devcontainer-home,target=/home/ubuntu,type=bind"
-  ],
   "customizations": {
     "vscode": {
       "extensions": [

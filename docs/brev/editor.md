@@ -73,7 +73,10 @@ and Jupyter extensions in the same environment as CUDA scripts.
 
 2. In VS Code, run **Dev Containers: Reopen in Container**. The committed
    `.devcontainer/devcontainer.json` selects the `jupyter` service and opens
-   `/workspace`.
+   `/workspace`. The first connection builds a thin local image that keeps the
+   pinned NGC PyTorch base and adds the non-root `ubuntu` user required by VS
+   Code; choose **Dev Containers: Rebuild Container** after a configuration
+   update.
 3. Open an `.ipynb` file and choose the container Python kernel once. It is
    `/usr/bin/python` and includes the NGC image's CUDA-enabled PyTorch.
 
