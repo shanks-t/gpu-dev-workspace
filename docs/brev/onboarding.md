@@ -23,16 +23,12 @@ The first time an rsync-populated VM is used, follow the approved
 [one-time Git workspace migration](git-workspace.md#one-time-migration). It
 backs up remote learner work before replacing `/home/ubuntu/workspace`.
 
-After the VM has its Git checkout, start each session:
+After the VM has its Git checkout, open a session with one command. When the
+VM is stopped, `--confirm-start` explicitly authorizes its runtime cost and
+installs the 120-minute stop watchdog:
 
 ```sh
-brev refresh
-infra/brev/scripts/watchdog INSTANCE 120 --confirm-watchdog
-brev shell INSTANCE
-cd /home/ubuntu/workspace
-git pull --ff-only origin remote
-exit
-infra/brev/scripts/smoke INSTANCE
+infra/brev/scripts/open-workspace INSTANCE --confirm-start
 ```
 
 Edit and commit in the remote checkout, then retrieve work locally with
@@ -93,6 +89,9 @@ reuse their Docker volumes. See [editor support](editor.md) for details.
   streams it into the remote Docker login without exposing it on the command line.
 - Load your GitHub key in the local SSH agent before migration; the migration
   forwards that agent and never copies its private key to the VM.
+- `open-workspace` copies your local Git author name and email into the remote
+  checkout's local Git config. Both the Dev Container and VM shell use that
+  same checkout, so commits work from either terminal.
 - Do not enable shell tracing or record credential output.
 - Stopping preserves the workspace but can retain storage cost; deletion removes
   it. Stop the VM when finished and keep the watchdog as a backstop.

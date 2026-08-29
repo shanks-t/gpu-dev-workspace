@@ -27,8 +27,7 @@ supported macOS runtime, so run Triton and CUDA code on the VM.
 3. Open the remote checkout in VS Code and reopen it in the Dev Container:
 
    ```sh
-   infra/brev/scripts/notebook INSTANCE
-   brev open INSTANCE code --dir /home/ubuntu/workspace
+   infra/brev/scripts/open-workspace INSTANCE --confirm-start
    ```
 
 4. Edit under `/workspace`, then review and commit from the VM checkout:

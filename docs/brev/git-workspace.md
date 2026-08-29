@@ -58,8 +58,10 @@ and writes `.brev-migration.json` with the selected commit and branch.
 ## Daily remote-first workflow
 
 1. Start or choose an approved VM and run `brev refresh`.
-2. Connect with VS Code Remote SSH, open `/home/ubuntu/workspace`, and reopen
-   it in the NGC Dev Container; or start Jupyter with
+2. Run `infra/brev/scripts/open-workspace INSTANCE --confirm-start`. It starts
+   a stopped VM, refreshes Brev, configures Git identity for the shared
+   checkout, starts the watchdog, and opens VS Code at the remote workspace.
+   Reopen it in the NGC Dev Container; or start Jupyter with
    `infra/brev/scripts/notebook INSTANCE`.
 3. Edit under `/workspace`. In the VM shell, review and commit as `ubuntu`:
 

@@ -37,6 +37,14 @@ After fresh approval, remove `--dry-run` and add `--timeout 420` to create the V
 
 Use `scripts/git-workspace-preflight`, `scripts/git-workspace-backup`, and
 `scripts/git-workspace-migrate` for the one-time Git checkout migration, and
-`scripts/ngc-login` and `scripts/smoke` for their focused operations. Run CUDA,
-Triton, and profiling commands through the pinned NGC Compose workload, not
-directly on the VM host.
+`scripts/open-workspace`, `scripts/ngc-login`, and `scripts/smoke` for their
+focused operations. `open-workspace INSTANCE --confirm-start` is the supported
+remote-first editor entry point; it configures the remote checkout's Git author
+identity from the local repository config.
+
+When a user asks to commit remote workspace changes, inspect `git status` and
+`git diff` in `/home/ubuntu/workspace`, stage only the files the user intended
+to include, commit on branch `remote`, and push `origin remote`. Do not stage
+`.brev-migration.json` or restored untracked learner files without explicit
+user direction. Run CUDA, Triton, and profiling commands through the pinned
+NGC Compose workload, not directly on the VM host.

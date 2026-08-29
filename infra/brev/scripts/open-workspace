@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  echo "usage: open-workspace INSTANCE [--confirm-start] [--deadline-minutes MINUTES]" >&2
+  exit 2
+}
+
+instance=${1:-}
+[[ -n "$instance" ]] || usage
+shift
+confirm_start=false
+deadline_minutes=120
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --confirm-start) confirm_start=true; shift ;;
+    --deadline-minutes) deadline_minutes=${2:-}; shift 2 ;;
+    *) usage ;;
+  esac
+done
+[[ "$deadline_minutes" =~ ^[1-9][0-9]*$ && "$deadline_minutes" -le 120 ]] || {
+  echo "REFUSE: --deadline-minutes must be between 1 and 120" >&2
+  exit 2
+}
+
+git_name=$(git config user.name || true)
+git_email=$(git config user.email || true)
+[[ -n "$git_name" && -n "$git_email" ]] || {
+  echo "REFUSE: configure local Git user.name and user.email before opening the workspace" >&2
+  exit 1
+}
+
+status=$(brev ls --json | jq -r --arg instance "$instance" \
+  '.workspaces[] | select(.name == $instance) | .status')
+[[ -n "$status" ]] || { echo "REFUSE: Brev instance not found: $instance" >&2; exit 1; }
+started=false
+case "$status" in
+  STOPPED)
+    [[ "$confirm_start" == true ]] || {
+      echo "REFUSE: $instance is stopped; rerun with --confirm-start to incur runtime cost" >&2
+      exit 1
+    }
+    brev start "$instance"
+    started=true
+    for _ in $(seq 1 84); do
+      sleep 5
+      status=$(brev ls --json | jq -r --arg instance "$instance" \
+        '.workspaces[] | select(.name == $instance) | .status')
+      [[ "$status" == RUNNING ]] && break
+      [[ "$status" != ERROR && "$status" != STOPPING ]] || break
+    done
+    [[ "$status" == RUNNING ]] || { echo "REFUSE: instance did not reach RUNNING (status: $status)" >&2; exit 1; }
+    ;;
+  RUNNING) ;;
+  *) echo "REFUSE: instance is not ready to open (status: $status)" >&2; exit 1 ;;
+esac
+
+brev refresh
+if [[ "$started" == true ]]; then
+  "$(dirname "$0")/watchdog" "$instance" "$deadline_minutes" --confirm-watchdog
+fi
+
+ssh -A -o BatchMode=yes -o ControlMaster=no -o ControlPath=none "$instance" \
+  bash -s -- "$git_name" "$git_email" <<'REMOTE'
+set -euo pipefail
+git_name=$1
+git_email=$2
+workspace=/home/ubuntu/workspace
+
+[[ $(id -un) == ubuntu ]] || { echo "REFUSE: remote checkout user must be ubuntu" >&2; exit 1; }
+test -d "$workspace/.git" || { echo "REFUSE: $workspace is not a Git checkout" >&2; exit 1; }
+[[ $(git -C "$workspace" branch --show-current) == remote ]] || {
+  echo "REFUSE: checkout is not on the remote branch" >&2
+  exit 1
+}
+git -C "$workspace" config user.name "$git_name"
+git -C "$workspace" config user.email "$git_email"
+git -C "$workspace" ls-remote --exit-code origin refs/heads/remote </dev/null >/dev/null
+printf 'Git identity configured for /workspace: %s <%s>\n' "$git_name" "$git_email"
+REMOTE
+
+brev open "$instance" code --dir /home/ubuntu/workspace
