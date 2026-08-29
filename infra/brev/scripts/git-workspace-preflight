@@ -46,7 +46,7 @@ test -w /home/ubuntu || { echo "REFUSE: /home/ubuntu is not writable" >&2; exit 
 echo "requested remote: $repo"
 echo "requested branch: $branch"
 
-auth_output=$(ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -T git@github.com 2>&1) || auth_status=$?
+auth_output=$(ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -T git@github.com </dev/null 2>&1) || auth_status=$?
 auth_status=${auth_status:-0}
 if [[ $auth_status -ne 0 && $auth_status -ne 1 ]]; then
   echo "REFUSE: forwarded SSH agent cannot authenticate to GitHub" >&2
