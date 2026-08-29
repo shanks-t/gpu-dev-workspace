@@ -13,6 +13,8 @@ docs/specs/
 __pycache__/
 *.pyc
 *.o
+# Generated CUDA executable and intermediate files for this lesson.
+curriculum/gpu-mode-lecture-002/vector_addition/build/
 .venv/
 .artifacts/
 # Keep lightweight, reviewable visual results and console logs.
