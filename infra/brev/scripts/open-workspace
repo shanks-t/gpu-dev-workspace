@@ -74,6 +74,7 @@ install -d --mode=0755 /home/ubuntu/.devcontainer-home
   echo "REFUSE: checkout is not on the remote branch" >&2
   exit 1
 }
+git -C "$workspace" pull --ff-only origin remote
 git -C "$workspace" config user.name "$git_name"
 git -C "$workspace" config user.email "$git_email"
 git -C "$workspace" ls-remote --exit-code origin refs/heads/remote </dev/null >/dev/null
