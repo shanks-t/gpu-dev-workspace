@@ -25,7 +25,7 @@ fi
 
 repo_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 date_prefix=$(date +%F)
-spec_dir="$repo_root/specs/$date_prefix-$name"
+spec_dir="$repo_root/docs/specs/$date_prefix-$name"
 
 if [[ -e "$spec_dir" ]]; then
   echo "Spec workspace already exists: $spec_dir" >&2
@@ -36,7 +36,7 @@ mkdir -p "$spec_dir"
 safe_title=$(printf '%s' "$title" | sed 's/[&|\\]/\\&/g')
 for artifact in spec.md tasks.md; do
   sed -e "s|{{DATE}}|$date_prefix|g" -e "s|{{TITLE}}|$safe_title|g" \
-    "$repo_root/specs/templates/$artifact" > "$spec_dir/$artifact"
+    "$repo_root/docs/specs/templates/$artifact" > "$spec_dir/$artifact"
 done
 
 echo "Created $spec_dir"
