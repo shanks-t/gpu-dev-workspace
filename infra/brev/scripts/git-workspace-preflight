@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  echo "usage: git-workspace-preflight INSTANCE --repo REPO --branch BRANCH --auth ssh-agent" >&2
+  exit 2
+}
+
+instance=${1:-}
+[[ -n "$instance" ]] || usage
+shift
+repo=
+branch=
+auth=
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --repo) repo=${2:-}; shift 2 ;;
+    --branch) branch=${2:-}; shift 2 ;;
+    --auth) auth=${2:-}; shift 2 ;;
+    *) usage ;;
+  esac
+done
+[[ -n "$repo" && -n "$branch" && "$auth" == "ssh-agent" ]] || usage
+
+local_root=$(git rev-parse --show-toplevel)
+local_remote=$(git -C "$local_root" remote get-url origin)
+if [[ -n $(git -C "$local_root" status --porcelain) ]]; then
+  echo "REFUSE: local checkout has uncommitted changes" >&2
+  exit 1
+fi
+if [[ "$local_remote" != "$repo" ]]; then
+  echo "REFUSE: --repo does not match local origin ($local_remote)" >&2
+  exit 1
+fi
+
+brev refresh
+ssh -A -o BatchMode=yes -o ControlMaster=no -o ControlPath=none "$instance" \
+  bash -s -- "$repo" "$branch" <<'REMOTE'
+set -euo pipefail
+repo=$1
+branch=$2
+workspace=/home/ubuntu/workspace
+
+echo "checkout user: $(id -un) ($(id -u):$(id -g))"
+test -w /home/ubuntu || { echo "REFUSE: /home/ubuntu is not writable" >&2; exit 1; }
+echo "requested remote: $repo"
+echo "requested branch: $branch"
+
+auth_output=$(ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -T git@github.com 2>&1) || auth_status=$?
+auth_status=${auth_status:-0}
+if [[ $auth_status -ne 0 && $auth_status -ne 1 ]]; then
+  echo "REFUSE: forwarded SSH agent cannot authenticate to GitHub" >&2
+  exit 1
+fi
+printf 'SSH-agent authentication: %s\n' "${auth_output//$'\n'/ }"
+git ls-remote --exit-code "$repo" "refs/heads/$branch" >/dev/null || {
+  echo "REFUSE: cannot read requested repository branch with forwarded agent" >&2
+  exit 1
+}
+echo "repository branch: reachable"
+
+if [[ ! -e "$workspace" ]]; then
+  echo "remote workspace: absent (safe to create)"
+elif [[ -d "$workspace/.git" ]]; then
+  if [[ -n $(git -C "$workspace" status --porcelain) ]]; then
+    echo "REFUSE: remote checkout has uncommitted changes" >&2
+    exit 1
+  fi
+  echo "remote workspace: clean Git checkout ($(git -C "$workspace" rev-parse --abbrev-ref HEAD))"
+  echo "REFUSE: existing Git checkout is not replaced by this migration" >&2
+  exit 1
+elif [[ -d "$workspace" ]]; then
+  file_count=$(find "$workspace" -mindepth 1 -maxdepth 1 -print | wc -l | tr -d ' ')
+  echo "remote workspace: non-Git directory with $file_count top-level entries"
+  echo "backup required before replacement"
+else
+  echo "REFUSE: $workspace exists but is not a directory" >&2
+  exit 1
+fi
+REMOTE

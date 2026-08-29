@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  echo "usage: git-workspace-backup INSTANCE --output ARCHIVE.tgz" >&2
+  exit 2
+}
+
+instance=${1:-}
+[[ -n "$instance" ]] || usage
+shift
+output=
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --output) output=${2:-}; shift 2 ;;
+    *) usage ;;
+  esac
+done
+[[ -n "$output" ]] || usage
+[[ ! -e "$output" ]] || { echo "REFUSE: backup output already exists: $output" >&2; exit 1; }
+
+mkdir -p "$(dirname "$output")"
+brev refresh
+ssh -A -o BatchMode=yes -o ControlMaster=no -o ControlPath=none "$instance" \
+  'test -d /home/ubuntu/workspace && tar -C /home/ubuntu/workspace --exclude=.git -czf - .' \
+  >"$output"
+shasum -a 256 "$output"
+echo "backup saved: $output"
