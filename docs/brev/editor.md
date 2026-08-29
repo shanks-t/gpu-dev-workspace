@@ -65,3 +65,23 @@ and Jupyter extensions in the same environment as CUDA scripts.
 
 Use the browser route in the [onboarding guide](onboarding.md#run-jupyterlab)
 when you prefer the full JupyterLab UI.
+
+### Extension cache lifecycle
+
+The Dev Container configuration persists VS Code's extension installation and
+download cache in the `gpu-fundamentals-vscode-extensions` and
+`gpu-fundamentals-vscode-extension-cache` Docker volumes. The first connection
+downloads Python, Jupyter, Pylance, and their dependencies; later rebuilds reuse
+those volumes instead of downloading them again.
+
+The volumes are retained when the notebook container is recreated and while the
+Brev VM is stopped. To deliberately reset them on the VM, run:
+
+```sh
+docker volume rm \
+  gpu-fundamentals-vscode-extensions \
+  gpu-fundamentals-vscode-extension-cache
+```
+
+Only reset the volumes to force a clean extension install; the next Dev
+Container connection will need to download the extensions again.

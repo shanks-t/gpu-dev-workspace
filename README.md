@@ -16,6 +16,14 @@ inside the pinned NVIDIA NGC container, and keep the useful artifacts.
 The lessons run in the NGC container, not directly on the VM host. For editor
 setup, see [editor support](docs/brev/editor.md).
 
+## Run the GPU workspace
+
+Use the container-backed workspace for CUDA Python, notebooks, and profiling.
+The complete setup—starting the Brev VM, syncing the repository, launching
+JupyterLab, opening VS Code in the Dev Container, and stopping the VM—is in
+the [Brev + NGC workspace guide](docs/brev/onboarding.md). For the editor
+workflow and extension-cache behavior, see [editor support](docs/brev/editor.md).
+
 ## A few useful places
 
 - [Curriculum](curriculum/README.md) — exercises and artifacts.

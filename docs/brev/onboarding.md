@@ -28,8 +28,8 @@ infra/brev/scripts/watchdog INSTANCE 120 --confirm-watchdog
 infra/brev/scripts/smoke INSTANCE
 ```
 
-Keep the repository open locally in Zed, edit there, sync it, and rerun on the
-VM. [Zed and VM editing](editor.md) has the complete loop.
+Keep the repository open locally, edit there, sync it, and rerun on the VM.
+For VS Code and Dev Container setup, see [editor support](editor.md).
 
 ## Run GPU work
 
@@ -64,6 +64,20 @@ brev port-forward INSTANCE -p 8888:8888
 
 Open <http://localhost:8888>. The container port is bound to `127.0.0.1` on
 the VM, so it is reachable only through the authenticated SSH tunnel.
+
+## Open the VS Code workspace
+
+Start the NGC notebook container, then open the remote workspace:
+
+```sh
+infra/brev/scripts/notebook INSTANCE
+brev open INSTANCE code --dir /home/ubuntu/workspace
+```
+
+In VS Code, run **Dev Containers: Reopen in Container**. This opens
+`/workspace` inside the same NGC image used by the lesson scripts. The first
+connection installs the Python and Jupyter extensions; later container rebuilds
+reuse their Docker volumes. See [editor support](editor.md) for details.
 
 ## Credentials and cleanup
 
