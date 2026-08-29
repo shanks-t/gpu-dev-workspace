@@ -35,4 +35,8 @@ After fresh approval, remove `--dry-run` and add `--timeout 420` to create the V
 - Immediately after a live create, run `brev refresh`, schedule `scripts/watchdog INSTANCE 120 --confirm-watchdog`, and write local billing and cleanup evidence below ignored `reports/brev/`.
 - Stop the VM when finished. Delete disposable test VMs after saving evidence; a stopped VM can retain billable storage and may lose capacity on restart.
 
-Use `scripts/sync-source`, `scripts/ngc-login`, and `scripts/smoke` for their focused operations. Run CUDA, Triton, and profiling commands through the pinned NGC Compose workload, not directly on the VM host.
+Use `scripts/git-workspace-preflight`, `scripts/git-workspace-backup`, and
+`scripts/git-workspace-migrate` for the one-time Git checkout migration, and
+`scripts/ngc-login` and `scripts/smoke` for their focused operations. Run CUDA,
+Triton, and profiling commands through the pinned NGC Compose workload, not
+directly on the VM host.

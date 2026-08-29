@@ -3,8 +3,8 @@
 Learn GPU programming fundamentals on real hardware without owning a GPU.
 Work through *[Programming Massively Parallel
 Processors](https://shop.elsevier.com/books/programming-massively-parallel-processors/hwu/978-0-443-43900-1)*,
-by Hwu, Kirk, and Hajj; edit locally, sync to a short-lived Brev VM, run
-inside the pinned NVIDIA NGC container, and keep the useful artifacts.
+by Hwu, Kirk, and Hajj; edit and commit in a short-lived Brev VM, run inside
+the pinned NVIDIA NGC container, and pull the work back to your Mac.
 
 ## Start here
 
@@ -19,7 +19,7 @@ setup, see [editor support](docs/brev/editor.md).
 ## Run the GPU workspace
 
 Use the container-backed workspace for CUDA Python, notebooks, and profiling.
-The complete setup—starting the Brev VM, syncing the repository, launching
+The complete setup—starting the Brev VM, checking out the repository, launching
 JupyterLab, opening VS Code in the Dev Container, and stopping the VM—is in
 the [Brev + NGC workspace guide](docs/brev/onboarding.md). For the editor
 workflow and extension-cache behavior, see [editor support](docs/brev/editor.md).
@@ -29,7 +29,8 @@ workflow and extension-cache behavior, see [editor support](docs/brev/editor.md)
 - [Curriculum](curriculum/README.md) — exercises and artifacts.
 - [Learning tools](learning-tools/README.md) — reusable interactive visualizations.
 - [Programming Massively Parallel Processors](https://shop.elsevier.com/books/programming-massively-parallel-processors/hwu/978-0-443-43900-1) — primary textbook; add chapter-aligned source links to learner notes and exercises.
-- [Brev infrastructure rules](infra/brev/AGENTS.md) — VM lifecycle, sync, and NGC.
+- [Brev infrastructure rules](infra/brev/AGENTS.md) — VM lifecycle and NGC.
+- [Remote Git workspace](docs/brev/git-workspace.md) — migration and commit/push workflow.
 - [Nsight Compute guide](docs/brev/ncu.md) — profiling workflow.
 - [Scripts](scripts/README.md) — local helpers.
 - [Today I Learned](TIL.md) — notes from the journey.

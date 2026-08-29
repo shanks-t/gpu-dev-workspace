@@ -5,7 +5,7 @@ Triton square kernel. The Brev VM supplies SSH and persistent workspace
 storage; the pinned NGC PyTorch container supplies CUDA, Triton, and Nsight
 Compute.
 
-## Start and synchronize
+## Start and update the checkout
 
 Use an approved profiling VM. Starting a VM incurs provider charges, so set
 the watchdog immediately after it becomes available.
@@ -13,7 +13,9 @@ the watchdog immediately after it becomes available.
 ```sh
 brev start gpu-profiling
 brev refresh
-infra/brev/scripts/sync-source gpu-profiling
+brev shell gpu-profiling
+cd /home/ubuntu/workspace && git pull --ff-only origin remote
+exit
 infra/brev/scripts/watchdog gpu-profiling 180 --confirm-watchdog
 ```
 

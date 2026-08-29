@@ -1,9 +1,8 @@
-# Edit locally with Zed, run on the VM
+# Edit and commit in the remote NGC workspace
 
-Zed is the recommended editor. Keep the repository open locally in Zed, then
-sync changes to the Brev VM and run GPU code there in the pinned NGC container.
-The Mac environment is for editing feedback only; do not run GPU lesson code
-with the Mac interpreter.
+Use VS Code Remote SSH to open the Git checkout on the Brev VM, then reopen it
+in the NGC Dev Container. The Mac is for Git synchronization and editor access;
+do not run GPU lesson code with its Python interpreter.
 
 ## One-time local setup
 
@@ -20,18 +19,36 @@ Open the repository in Zed and select
 resolve the macOS-compatible dependencies for static feedback. Triton is not a
 supported macOS runtime, so run Triton and CUDA code on the VM.
 
-## Edit, sync, run, repeat
+## Edit, review, commit, push, pull
 
-1. Start or choose `INSTANCE` with the [GPU VM selection guide](instance-selection.md).
-2. Make changes locally in Zed.
-3. Sync the working tree to the VM, then open its shell:
+1. Complete the [one-time Git workspace migration](git-workspace.md) before
+   opening an existing rsync workspace.
+2. Start or choose `INSTANCE` with the [GPU VM selection guide](instance-selection.md).
+3. Open the remote checkout in VS Code and reopen it in the Dev Container:
 
    ```sh
-   infra/brev/scripts/sync-source INSTANCE
-   brev shell INSTANCE
+   infra/brev/scripts/notebook INSTANCE
+   brev open INSTANCE code --dir /home/ubuntu/workspace
    ```
 
-4. On the VM, run the exercise through NGC:
+4. Edit under `/workspace`, then review and commit from the VM checkout:
+
+   ```sh
+   cd /home/ubuntu/workspace
+   git status
+   git diff
+   git add PATHS
+   git commit -m "type: summary"
+   git push origin remote
+   ```
+
+5. On the Mac, retrieve the commit:
+
+   ```sh
+   git pull --ff-only origin remote
+   ```
+
+6. To run an exercise manually on the VM, use NGC:
 
    ```sh
    cd /home/ubuntu/workspace
@@ -39,9 +56,8 @@ supported macOS runtime, so run Triton and CUDA code on the VM.
      'cd curriculum/gpu-mode-lecture-001 && python pytorch_square.py'
    ```
 
-After the next edit in Zed, repeat the sync and run steps. `sync-source` is
-the normal incremental `rsync --delete` path; it refreshes the Brev connection
-details before copying files.
+`sync-source` is retired: delete-based rsync would overwrite remote edits and
+remove the checkout's Git metadata.
 
 ## VS Code notebooks in the NGC container
 
@@ -49,10 +65,9 @@ For interactive notebooks, use VS Code Remote SSH to reach the Brev VM, then
 reopen the repository in its NGC Dev Container. This puts the VS Code Python
 and Jupyter extensions in the same environment as CUDA scripts.
 
-1. Start and sync the VM, then launch the notebook container:
+1. Start the migrated VM, then launch the notebook container:
 
    ```sh
-   infra/brev/scripts/sync-source INSTANCE
    infra/brev/scripts/notebook INSTANCE
    brev open INSTANCE code --dir /home/ubuntu/workspace
    ```

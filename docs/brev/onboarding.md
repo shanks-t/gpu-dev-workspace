@@ -19,17 +19,25 @@ For installation and updates, see NVIDIA's [CLI-with-agents guide](https://docs.
 
 ## Start a session
 
-After choosing or starting `INSTANCE`:
+The first time an rsync-populated VM is used, follow the approved
+[one-time Git workspace migration](git-workspace.md#one-time-migration). It
+backs up remote learner work before replacing `/home/ubuntu/workspace`.
+
+After the VM has its Git checkout, start each session:
 
 ```sh
 brev refresh
-infra/brev/scripts/sync-source INSTANCE
 infra/brev/scripts/watchdog INSTANCE 120 --confirm-watchdog
+brev shell INSTANCE
+cd /home/ubuntu/workspace
+git pull --ff-only origin remote
+exit
 infra/brev/scripts/smoke INSTANCE
 ```
 
-Keep the repository open locally, edit there, sync it, and rerun on the VM.
-For VS Code and Dev Container setup, see [editor support](editor.md).
+Edit and commit in the remote checkout, then retrieve work locally with
+`git pull --ff-only origin remote`. For VS Code and Dev Container setup, see
+[editor support](editor.md).
 
 ## Run GPU work
 
@@ -83,6 +91,8 @@ reuse their Docker volumes. See [editor support](editor.md) for details.
 
 - Save the NGC key in the macOS Keychain; `infra/brev/scripts/ngc-login INSTANCE`
   streams it into the remote Docker login without exposing it on the command line.
+- Load your GitHub key in the local SSH agent before migration; the migration
+  forwards that agent and never copies its private key to the VM.
 - Do not enable shell tracing or record credential output.
 - Stopping preserves the workspace but can retain storage cost; deletion removes
   it. Stop the VM when finished and keep the watchdog as a backstop.
