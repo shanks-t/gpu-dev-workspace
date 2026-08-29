@@ -1,0 +1,8 @@
+{
+  "name": "NGC PyTorch",
+  "dockerComposeFile": "../infra/brev/compose/ngc-pytorch.compose.yaml",
+  "service": "jupyter",
+  "workspaceFolder": "/workspace",
+  "overrideCommand": false,
+  "shutdownAction": "none"
+}

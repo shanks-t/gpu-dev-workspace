@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+instance=${1:?usage: notebook INSTANCE}
+
+brev refresh
+ssh -o ControlMaster=no -o ControlPath=none "$instance" "bash -s" <<'REMOTE'
+set -euo pipefail
+cd /home/ubuntu/workspace
+docker compose -f infra/brev/compose/ngc-pytorch.compose.yaml up -d jupyter
+docker compose -f infra/brev/compose/ngc-pytorch.compose.yaml ps jupyter
+REMOTE
+
+cat <<EOF
+
+JupyterLab is running only on the VM loopback interface.
+In another local terminal, forward it with:
+
+  brev port-forward $instance -p 8888:8888
+
+Then open http://localhost:8888.
+EOF
