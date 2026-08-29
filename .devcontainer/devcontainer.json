@@ -4,5 +4,13 @@
   "service": "jupyter",
   "workspaceFolder": "/workspace",
   "overrideCommand": false,
-  "shutdownAction": "none"
+  "shutdownAction": "none",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-toolsai.jupyter"
+      ]
+    }
+  }
 }
