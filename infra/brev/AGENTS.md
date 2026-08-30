@@ -40,8 +40,8 @@ Use `scripts/git-workspace-preflight`, `scripts/git-workspace-backup`, and
 `scripts/open-workspace`, `scripts/ngc-login`, and `scripts/smoke` for their
 focused operations. `open-workspace INSTANCE --confirm-start` is the supported
 remote-first editor entry point; it configures the remote checkout's Git author
-identity, starts the NGC workspace, and installs the Dev Containers Docker 29
-compatibility wrapper.
+identity and starts the NGC Jupyter GPU runtime. Use Remote SSH only; do not
+attach VS Code to the Docker container.
 
 When a user asks to commit remote workspace changes, inspect `git status` and
 `git diff` in `/home/ubuntu/workspace`, stage only the files the user intended

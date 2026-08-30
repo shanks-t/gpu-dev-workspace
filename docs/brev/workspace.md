@@ -1,20 +1,23 @@
 # GPU kernel development workspace
 
-This is the single workflow for editing, testing, profiling, and pushing GPU
-kernel changes. The Mac runs VS Code and Git synchronization; the Brev VM
-stores the checkout; the NGC Dev Container runs CUDA, PyTorch, Triton, and
-profilers.
+This is the supported, low-friction loop for editing, running, testing, and
+pushing GPU code. VS Code connects only to the Brev VM through Remote SSH.
+Docker Compose supplies the NGC GPU runtime without becoming a second VS Code
+workspace.
 
 | Location | Path |
 | --- | --- |
-| VM (Remote SSH) | `/home/ubuntu/workspace` |
-| Dev Container | `/workspace` |
+| Edit, Git, VS Code terminal | Brev VM: `/home/ubuntu/workspace` |
+| CUDA, PyTorch, Triton, JupyterLab | NGC Compose service: `/workspace` |
 | Git branch on the VM | `remote` |
+
+The two paths are the same files: the NGC service bind-mounts the VM checkout.
+Saving in VS Code makes an edit immediately available to the GPU runtime.
 
 ## One-time setup
 
-Install and authenticate the Brev CLI on the Mac, then configure Git author
-information locally. The workspace command copies it to the VM checkout.
+Install and authenticate the Brev CLI on the Mac, then set your Git identity.
+`open-workspace` copies that identity to the VM checkout.
 
 ```sh
 brew install brevdev/homebrew-brev/brev
@@ -23,80 +26,66 @@ git config --global user.name "Your Name"
 git config --global user.email "you@example.com"
 ```
 
-The VM workspace must be a Git clone on branch `remote`. If it contains an old
-rsync workspace, use the migration scripts in `infra/brev/scripts/` first.
-Never replace the checkout with rsync.
+Install VS Code with the **Remote - SSH** extension. The VM workspace must be a
+Git clone on branch `remote`. If it contains an old rsync workspace, use the
+migration scripts in `infra/brev/scripts/` first; never replace the checkout
+with rsync.
 
 ## Start a development session
 
-Reuse the existing VM. Starting it incurs runtime cost; `--confirm-start`
-makes that explicit. `--pull` fast-forwards the VM checkout, so omit it if the
-VM has uncommitted edits.
+From a local clone, run one command. `--pull` fast-forwards the VM checkout, so
+omit it when the VM has uncommitted edits.
 
 ```sh
 infra/brev/scripts/open-workspace gpu-fundamentals --confirm-start --pull
 ```
 
-The command starts the NGC Jupyter service, installs the Dev Containers Docker
-compatibility wrapper on the VM, configures Git identity, and opens VS Code
-through Remote SSH at `/home/ubuntu/workspace`.
+It starts or reuses the VM, configures Git on its `remote` checkout, launches
+the NGC Jupyter GPU runtime, and opens VS Code at
+`/home/ubuntu/workspace` through Remote SSH. This is the only VS Code window
+you need. Auto Save is configured for this workspace.
 
-In that **same VS Code window**, run **Dev Containers: Reopen in Container**.
-It opens the configured `jupyter` service with `/workspace` as the folder.
-Do **not** use **Attach to Running Container**: it opens a separate window
-without the workspace context.
+Do not run **Dev Containers: Reopen in Container** or **Attach to Running
+Container**. They are not part of this workflow.
 
-Verify the attached terminal:
+## Run GPU code from the editor
 
-```sh
-pwd
-# /workspace
-```
+Use the VS Code build shortcut (**Cmd+Shift+B** on macOS, **Ctrl+Shift+B** on
+Windows/Linux) to run the active Python file in the NGC GPU runtime. It runs
+the file at `/workspace/${relativeFile}` and streams output in the integrated
+terminal.
 
-## Docker 29 workaround
+The Command Palette command **Tasks: Run Task** also provides:
 
-Docker Engine 29 omits `Client.Components` from `docker version --format
-{{json .}}`. Dev Containers expects that field and crashes before it can reopen
-the workspace. The wrapper installed by `open-workspace` adds that field only
-for this version query; all other commands delegate to `/usr/bin/docker`.
+- **GPU: CUDA and PyTorch Check** — verifies the active CUDA GPU and versions.
+- **GPU: Open Runtime Shell** — opens a shell inside the NGC environment.
 
-The upstream issue is [VS Code Remote #11655](https://github.com/microsoft/vscode-remote-release/issues/11655).
-If VS Code was connected before the wrapper was installed, run **Developer:
-Reload Window**, reconnect with `brev open gpu-fundamentals code`, then use
-**Reopen in Container**.
-
-## Edit, test, and profile
-
-Edit beneath `/workspace`. Auto Save is enabled, so saved VS Code changes are
-visible to shell commands and code-review tools.
-
-Run GPU work from a Dev Container terminal:
+The host Python on the VM intentionally does not provide PyTorch or CUDA. Run
+GPU commands through these tasks or from the runtime shell. For example:
 
 ```sh
 python curriculum/gpu-mode-lecture-001/pytorch_square.py
-python - <<'PY'
-import torch
-print(torch.cuda.is_available(), torch.cuda.get_device_name(0))
-PY
 ```
 
-For a one-off host command, use the same pinned environment:
+## JupyterLab
 
-```sh
-cd /home/ubuntu/workspace
-docker compose -f infra/brev/compose/ngc-pytorch.compose.yaml run --rm pytorch -lc \
-  'python curriculum/gpu-mode-lecture-001/pytorch_square.py'
-```
+The Jupyter service is bound only to VM loopback at port 8889. Remote SSH
+automatically forwards it and opens it once in your local browser. If it does
+not open, use VS Code's **Ports** view and click the globe beside **GPU
+JupyterLab**, then open `http://localhost:8889`.
 
-For notebooks, choose the container Python kernel (`/usr/bin/python`). The VM
-host Python intentionally does not include PyTorch. The connectivity notebook
-at `infra/brev/scripts/connectivity-test.ipynb` should report CUDA available
-and the active GPU.
+The browser JupyterLab session already uses the GPU-enabled NGC Python. The
+connectivity notebook at `infra/brev/scripts/connectivity-test.ipynb` should
+report CUDA availability and the active GPU.
 
-## Commit and synchronize
+## Review and synchronize
 
-Commit from the Dev Container terminal. `/workspace` is the VM checkout, so
-the host sees the same changes immediately.
+Because edits are saved on the VM, I can review the latest remote Git diff
+without Codex being installed in the VM. Ask me to “review the remote diff”; I
+will inspect `/home/ubuntu/workspace` through Brev.
+
+Use the VS Code Source Control view to commit and push, or run this in the
+Remote SSH terminal:
 
 ```sh
 git status
@@ -106,7 +95,7 @@ git commit -m "feat: improve kernel"
 git push origin remote
 ```
 
-On the Mac, retrieve the remote commit:
+Update your Mac checkout when needed:
 
 ```sh
 git pull --ff-only origin remote
@@ -122,5 +111,14 @@ Stop the VM when the session ends to stop compute billing:
 brev stop gpu-fundamentals
 ```
 
-The VM retains its checkout and image while stopped. Review `git status`
-before the next session and use `--pull` only when the checkout is clean.
+The VM retains its checkout and image while stopped. Before the next session,
+review `git status`; use `--pull` only when the checkout is clean.
+
+## Why this avoids Dev Containers
+
+The previous Dev Containers route is disabled because its current VS Code
+extension crashes during Remote SSH initialization with Docker 29, before the
+container can open. The failure is tracked in [VS Code Remote
+#11655](https://github.com/microsoft/vscode-remote-release/issues/11655).
+Remote SSH plus Docker Compose has the same mounted files and GPU runtime,
+without a second VS Code window or the failing integration.

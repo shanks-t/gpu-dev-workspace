@@ -70,13 +70,10 @@ git_email=$2
 pull_checkout=$3
 workspace=/home/ubuntu/workspace
 compose_file=$workspace/infra/brev/compose/ngc-pytorch.compose.yaml
-docker_wrapper=$workspace/infra/brev/scripts/docker-devcontainers
 
 [[ $(id -un) == ubuntu ]] || { echo "REFUSE: remote checkout user must be ubuntu" >&2; exit 1; }
 test -d "$workspace/.git" || { echo "REFUSE: $workspace is not a Git checkout" >&2; exit 1; }
 install -d --mode=0755 /home/ubuntu/.devcontainer-home
-install -d --mode=0755 /home/ubuntu/.local/bin
-install --mode=0755 "$docker_wrapper" /home/ubuntu/.local/bin/docker
 [[ $(git -C "$workspace" branch --show-current) == remote ]] || {
   echo "REFUSE: checkout is not on the remote branch" >&2
   exit 1
@@ -98,7 +95,7 @@ fi
 docker compose -f "$compose_file" up -d --no-build --no-deps jupyter
 docker compose -f "$compose_file" exec -T jupyter sh -lc \
   'id -u | grep -qx 1000 && test "$HOME" = /home/ubuntu' </dev/null
-printf 'Workspace ready: Git %s <%s>; NGC Jupyter re-used on port 8889; Dev Containers compatibility wrapper installed\n' "$git_name" "$git_email"
+printf 'Workspace ready: Git %s <%s>; NGC Jupyter is running on port 8889\n' "$git_name" "$git_email"
 REMOTE
 
 brev open "$instance" code --dir /home/ubuntu/workspace
