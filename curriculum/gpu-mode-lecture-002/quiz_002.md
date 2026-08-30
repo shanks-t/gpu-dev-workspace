@@ -29,18 +29,18 @@ We will work through these in order. Check an item only after you can explain it
 
 ## Mean filter
 
-- [ ] 17. How is the mean-filter input layout `(channels, height, width)` different from the grayscale layout `(height, width, channels)`?
-- [ ] 18. In the mean filter, what work does one thread perform, and how is its `channel` selected?
-- [ ] 19. Explain `baseOffset = channel * height * width` for a three-channel, channel-first image.
-- [ ] 20. For `radius = 1`, how many candidate positions does the nested loop inspect for a pixel away from an edge? Verify with a tiny CPU/PyTorch loop or a printed list of offsets.
-- [ ] 21. Why are `pixels` and the bounds check necessary? What happens conceptually at an image corner? Use a tiny image to list the valid neighboring coordinates for a corner.
-- [ ] 22. Why are `pixVal` and `pixels` `int`s while the input and output pixels are `unsigned char`?
-- [ ] 23. What output does a radius-1 mean filter produce for a pixel, in words and as a short formula? Run the provided mean-filter example remotely and compare an interior pixel with a corner pixel.
-- [ ] 24. Why does the mean filter use `threads_per_block(16, 16, channels)` but only a two-dimensional grid?
+- [x] 17. How is the mean-filter input layout `(channels, height, width)` different from the grayscale layout `(height, width, channels)`?
+- [x] 18. In the mean filter, what work does one thread perform, and how is its `channel` selected?
+- [x] 19. Explain `baseOffset = channel * height * width` for a three-channel, channel-first image.
+- [x] 20. For `radius = 1`, how many candidate positions does the nested loop inspect for a pixel away from an edge? Verify with a tiny CPU/PyTorch loop or a printed list of offsets.
+- [x] 21. Why are `pixels` and the bounds check necessary? What happens conceptually at an image corner? Use a tiny image to list the valid neighboring coordinates for a corner.
+- [x] 22. Why are `pixVal` and `pixels` `int`s while the input and output pixels are `unsigned char`?
+- [x] 23. What output does a radius-1 mean filter produce for a pixel, in words and as a short formula? Run the provided mean-filter example remotely and compare an interior pixel with a corner pixel.
+- [x] 24. Why does the mean filter use `threads_per_block(16, 16, channels)` but only a two-dimensional grid?
 
 ## Build toward vector add
 
-- [ ] 25. Design the mapping: if a vector has length `n`, which single output element should thread index `i` compute?
+- [x] 25. Design the mapping: if a vector has length `n`, which single output element should thread index `i` compute?
 - [ ] 26. Choose a one-dimensional launch configuration and write the formulas for `i` and the bounds check.
 - [ ] 27. Write a `__global__` CUDA kernel that computes `out[i] = a[i] + b[i]` for float vectors.
 - [ ] 28. Write the PyTorch C++ wrapper: validate CUDA tensors, allocate output, calculate block count with `cdiv`, launch on the current CUDA stream, and check launch errors.
