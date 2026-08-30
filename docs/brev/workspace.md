@@ -69,16 +69,19 @@ GPU commands through these tasks or from the runtime shell. For example:
 python curriculum/gpu-mode-lecture-001/pytorch_square.py
 ```
 
-From a Remote SSH terminal, use the wrapper to build and run a standalone CUDA
-program without typing the Docker Compose command:
+From a Remote SSH terminal, use the wrapper to run Python or build and run a
+standalone CUDA program without typing the Docker Compose command:
 
 ```sh
-infra/brev/scripts/run-cuda \
+infra/brev/scripts/run-gpu curriculum/gpu-mode-lecture-001/pytorch_square.py
+
+infra/brev/scripts/run-gpu \
   curriculum/gpu-mode-lecture-002/vector_addition/vector_addition.cu
 ```
 
-It detects the attached GPU's compute capability and writes its executable
-under `/tmp/gpu-fundamentals`, outside the Git checkout.
+For CUDA, it detects the attached GPU's compute capability and writes its
+executable under `/tmp/gpu-fundamentals`, outside the Git checkout. The old
+`run-cuda` command remains available as an alias for this wrapper.
 
 A `.cu` file that exposes `torch::Tensor` is a PyTorch extension, not a
 standalone executable. Test it from a Python or notebook driver using

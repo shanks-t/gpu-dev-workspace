@@ -2,12 +2,13 @@
 set -euo pipefail
 
 usage() {
-  echo "usage: run-cuda PATH/TO/STANDALONE_PROGRAM.cu" >&2
+  echo "usage: run-gpu PATH/TO/PROGRAM.{py,cu} [PROGRAM_ARGS...]" >&2
   exit 2
 }
 
 source_arg=${1:-}
-[[ $# -eq 1 && -n "$source_arg" ]] || usage
+[[ -n "$source_arg" ]] || usage
+shift
 
 workspace=$(git rev-parse --show-toplevel)
 compose_file=$workspace/infra/brev/compose/ngc-pytorch.compose.yaml
@@ -23,31 +24,40 @@ case "$source_file" in
     exit 1
     ;;
 esac
-[[ "$relative_source" == *.cu ]] || {
-  echo "REFUSE: source must be a .cu file: $relative_source" >&2
-  exit 1
-}
-
-output_name=${relative_source//\//_}
-output_name=${output_name%.cu}
 container_source=/workspace/$relative_source
-container_output=/tmp/gpu-fundamentals/$output_name
 
-capability=$(docker compose -f "$compose_file" exec -T jupyter \
-  nvidia-smi --query-gpu=compute_cap --format=csv,noheader | head -n 1 | tr -d '.')
-[[ "$capability" =~ ^[0-9]+$ ]] || {
-  echo "REFUSE: could not determine the GPU compute capability" >&2
-  exit 1
-}
+case "$relative_source" in
+  *.py)
+    printf 'Running Python: %s\n' "$relative_source"
+    exec docker compose -f "$compose_file" exec -T jupyter \
+      python "$container_source" "$@"
+    ;;
+  *.cu)
+    output_name=${relative_source//\//_}
+    output_name=${output_name%.cu}
+    container_output=/tmp/gpu-fundamentals/$output_name
+    capability=$(docker compose -f "$compose_file" exec -T jupyter \
+      nvidia-smi --query-gpu=compute_cap --format=csv,noheader | head -n 1 | tr -d '.')
+    [[ "$capability" =~ ^[0-9]+$ ]] || {
+      echo "REFUSE: could not determine the GPU compute capability" >&2
+      exit 1
+    }
 
-printf 'Building %s for sm_%s\n' "$relative_source" "$capability"
-docker compose -f "$compose_file" exec -T jupyter bash -s -- \
-  "$container_source" "$container_output" "sm_$capability" <<'CONTAINER'
+    printf 'Building %s for sm_%s\n' "$relative_source" "$capability"
+    docker compose -f "$compose_file" exec -T jupyter bash -s -- \
+      "$container_source" "$container_output" "sm_$capability" "$@" <<'CONTAINER'
 set -euo pipefail
 source_file=$1
 output_file=$2
 architecture=$3
+shift 3
 mkdir -p "$(dirname "$output_file")"
 nvcc -O3 -std=c++17 -arch="$architecture" "$source_file" -o "$output_file"
-exec "$output_file"
+exec "$output_file" "$@"
 CONTAINER
+    ;;
+  *)
+    echo "REFUSE: source must be a .py or standalone .cu file: $relative_source" >&2
+    exit 1
+    ;;
+esac
