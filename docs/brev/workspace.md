@@ -57,6 +57,8 @@ terminal.
 
 The Command Palette command **Tasks: Run Task** also provides:
 
+- **GPU: Build and Run Current Standalone CUDA File** — compiles the active
+  standalone `.cu` file for the NVIDIA L4 and runs its temporary executable.
 - **GPU: CUDA and PyTorch Check** — verifies the active CUDA GPU and versions.
 - **GPU: Open Runtime Shell** — opens a shell inside the NGC environment.
 
@@ -66,6 +68,11 @@ GPU commands through these tasks or from the runtime shell. For example:
 ```sh
 python curriculum/gpu-mode-lecture-001/pytorch_square.py
 ```
+
+A `.cu` file that exposes `torch::Tensor` is a PyTorch extension, not a
+standalone executable. Test it from a Python or notebook driver using
+`torch.utils.cpp_extension.load_inline`; the standalone CUDA task is for files
+with a `main()` function, such as `vector_addition.cu`.
 
 ## JupyterLab
 

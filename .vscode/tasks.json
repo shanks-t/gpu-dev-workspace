@@ -45,6 +45,26 @@
       "problemMatcher": []
     },
     {
+      "label": "GPU: Build and Run Current Standalone CUDA File",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        "infra/brev/compose/ngc-pytorch.compose.yaml",
+        "exec",
+        "-T",
+        "jupyter",
+        "bash",
+        "-lc",
+        "set -e; source=\"/workspace/${relativeFile}\"; output=\"/tmp/gpu-fundamentals/${fileBasenameNoExtension}\"; mkdir -p /tmp/gpu-fundamentals; nvcc -O3 -std=c++17 -arch=sm_89 \"$source\" -o \"$output\"; \"$output\""
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "GPU: Open Runtime Shell",
       "type": "shell",
       "command": "docker",
