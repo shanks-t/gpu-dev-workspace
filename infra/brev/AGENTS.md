@@ -24,7 +24,7 @@ brev search --json --min-vram 16 --min-capability 8.0 --min-disk 100 --stoppable
 brev create INSTANCE --min-vram 16 --min-capability 8.0 --min-disk 100 --stoppable --sort price --dry-run
 ```
 
-Brev does not have a maximum-price flag. The search above is the agent's discovery command for new instances: it filters to the **$1.50/hour** cap, ranks candidates by price and then boot time, and shows at most the five cheapest candidates. Brev also has a minimum-VRAM filter but no maximum-VRAM filter. Manually select a result with no more than 24 GB per GPU; do not silently pin a provider because capacity and price are live inputs. For a human-oriented walkthrough, see [`docs/brev/instance-selection.md`](../../docs/brev/instance-selection.md).
+Brev does not have a maximum-price flag. The search above is the agent's discovery command for new instances: it filters to the **$1.50/hour** cap, ranks candidates by price and then boot time, and shows at most the five cheapest candidates. Brev also has a minimum-VRAM filter but no maximum-VRAM filter. Manually select a result with no more than 24 GB per GPU; do not silently pin a provider because capacity and price are live inputs. For the supported editor, container, and Git loop, see [`docs/brev/workspace.md`](../../docs/brev/workspace.md).
 
 After fresh approval, remove `--dry-run` and add `--timeout 420` to create the VM.
 
@@ -40,7 +40,8 @@ Use `scripts/git-workspace-preflight`, `scripts/git-workspace-backup`, and
 `scripts/open-workspace`, `scripts/ngc-login`, and `scripts/smoke` for their
 focused operations. `open-workspace INSTANCE --confirm-start` is the supported
 remote-first editor entry point; it configures the remote checkout's Git author
-identity from the local repository config.
+identity, starts the NGC workspace, and installs the Dev Containers Docker 29
+compatibility wrapper.
 
 When a user asks to commit remote workspace changes, inspect `git status` and
 `git diff` in `/home/ubuntu/workspace`, stage only the files the user intended

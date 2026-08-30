@@ -1,4 +1,6 @@
 {
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
   "python.defaultInterpreterPath": "/usr/bin/python",
   "jupyter.jupyterServerType": "local",
   "python.terminal.executeInFileDir": true
